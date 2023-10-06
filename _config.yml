@@ -7,13 +7,13 @@
 
 # Site Settings
 locale                   : "en-US"
-title                    : "Sepideh's Home"
+title                    : "Sepideh's Homepage"
 title_separator          : "-"
-name                     : &name "Your Name"
+name                     : &name "Sepideh Shamsizadeh"
 description              : &description "personal description"
-url                      : https://academicpages.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
+url                      : https://sepideh-shamsizadeh.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
-repository               : "academicpages/academicpages.github.io"
+repository               : "sepideh-shamsizadeh/sepideh-shamsizadeh.github.io"
 teaser                   :  # filename of teaser fallback teaser image placed in /images/, .e.g. "500x300.png"
 breadcrumbs              : false # true, false (default)
 words_per_minute         : 160
@@ -80,8 +80,8 @@ analytics:
 
 # Site Author
 author:
-  name             : "Your Sidebar Name"
-  avatar           : "profile.png"
+  name             : "Sepideh Shamsizadeh"
+  avatar           : "photo_2022-02-11_13-08-13.jpg"
   bio              : "Your biography for the left-hand sidebar"
   location         : "Location"
   employer         :
