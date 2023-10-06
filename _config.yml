@@ -85,8 +85,8 @@ author:
   bio              : "AI and Robotics Engineer"
   location         : "Zurich, Switzerland"
   employer         :
-  pubmed           : "https://pubmed.ncbi.nlm.nih.gov/31039404/"
-  googlescholar    : 
+  pubmed           : #"https://pubmed.ncbi.nlm.nih.gov/31039404/"
+  googlescholar    : "https://scholar.google.com/citations?hl=en&user=Ksh-JpQAAAAJ"
   email            :
   researchgate     :  # example: "https://www.researchgate.net/profile/yourprofile"
   uri              :
