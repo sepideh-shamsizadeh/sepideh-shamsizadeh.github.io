@@ -17,13 +17,14 @@ Education
 
 Work experience
 ======
-* **Sep 2022 - Sep 2023: Research Assistant in Computer vision and Robotics**
+* **Sep 2022 - Sep 2023: Research Assistant in Computer Vision and Robotics**
 
   University of Padova, IAS-lab, Italy
   
-  * Proposed an autolabeling framework to annotate people in panoramic videos with their position in the robot's frame, resulted with 15-fold speed up in labeling time.
+  * Proposed an autolabeling framework to annotate people in panoramic videos with their position in the robot's frame, resulting in a 15-fold speed up in labeling time.
   * Expertise in **People Detection and Tracking**, **Sensor Fusion**, **Camera and LiDAR Calibration**, and **Data Annotation**.
   * Supervisor: Professor Emanuele Menegatti
+
 
 * **Jun 2021 - Sep 2021: Intern Machine Learning Engineer**
   
@@ -36,31 +37,12 @@ Work experience
       
 Skills
 ======
-* Skill 1
-* Skill 2
-  * Sub-skill 2.1
-  * Sub-skill 2.2
-  * Sub-skill 2.3
-* Skill 3
+* Computer Vision, 3D Vision, Robotics, Machine Learning, Deep Learning, Artificial Intelligence, Industrial Robotics, Autonomous Driving
+* Programming Languages: Python, C++, Matlab
+* Libraries and Tools: ROS, TensorFlow, PyTorch, OpenCV, Open3D, Docker, Git, and Linux
 
 Publications
 ======
   <ul>{% for post in site.publications %}
     {% include archive-single-cv.html %}
   {% endfor %}</ul>
-  
-Talks
-======
-  <ul>{% for post in site.talks %}
-    {% include archive-single-talk-cv.html %}
-  {% endfor %}</ul>
-  
-Teaching
-======
-  <ul>{% for post in site.teaching %}
-    {% include archive-single-cv.html %}
-  {% endfor %}</ul>
-  
-Service and leadership
-======
-* Currently signed in to 43 different slack teams
