@@ -11,9 +11,9 @@ redirect_from:
 
 Education
 ======
-* B.S. in GitHub, GitHub University, 2012
-* M.S. in Jekyll, GitHub University, 2014
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
+* B.S. in Information Technology, Kermanshah University of Technology, 2014
+* M.S. in Health Information Technology Engineering, University of Tehran, 2017
+* M.S in Computer Engineering_Artificial Intelligence and Robotics, University of Padova, 2023
 
 Work experience
 ======
