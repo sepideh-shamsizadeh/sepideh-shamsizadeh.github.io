@@ -1,7 +1,7 @@
 ---
 title: 'Using Docker with ROS Noetic on Ubuntu 20.04: A Comprehensive Guide for Beginners'
 date: 2012-08-14
-permalink: /posts/Docker
+permalink: /posts/docker
 tags:
   - docker
   - ROS
