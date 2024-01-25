@@ -7,9 +7,10 @@ redirect_from:
   - /about/
   - /about.html
 ---
-<img align="right" width="300" height="300" src="/images/rob-sep.png" alt="Tech Image">
 
 Hello, I am Sepideh Shamsizadeh, a dedicated professional with a passion for artificial intelligence and robotics. Let me take you through my academic and professional odyssey.
+
+<img align="right" width="300" height="300" src="/images/rob-sep.png" alt="Tech Image">
 
 ### Academic Background:
 
