@@ -14,11 +14,11 @@ Hello, I am Sepideh Shamsizadeh, a dedicated professional with a passion for art
 
 ### Academic Background:
 
-I recently graduated with a Master's degree in Computer Engineering, specializing in AI and Robotics, from the esteemed University of Padova. Currently, I am leveraging my skills as a Junior Project Manager at Eurapco, where I lead an AI team working on LLM & GenAI projects.
+I graduated with a Master's degree in Computer Engineering, specializing in AI and Robotics, from the esteemed University of Padova. Currently, I am leveraging my skills as a Project Manager at Eurapco, where I lead an AI team working on LLM & GenAI projects.
 
 ### From Curious Student to Robotics Enthusiast:
 
-My academic journey began with a love for mathematics and problem-solving. In high school, I excelled academically, achieving the second place in the Tehran Province Junior High School Mathematics Olympiad. This success continued as I ranked in the top 7% among more than 450,000 participants in the Iranian nationwide university entrance examination for the B.Sc. Program (2010).
+My academic journey began with a love for mathematics and problem-solving. In high school, I excelled academically, achieving the second place in the Tehran Province Junior High School Mathematics Olympiad. This success continued as I ranked in the top 5% among more than 450,000 participants in the Iranian nationwide university entrance examination for the B.Sc. Program (2010).
 
 ### Bachelor's Degree in IT:
 
