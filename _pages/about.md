@@ -10,7 +10,9 @@ redirect_from:
 
 # Hello, I'm Sepideh Shamsizadeh 👋
 
-**AI & Robotics Engineer | Computer Vision | Machine Learning | Intelligent Systems**
+**AI & Robotics Engineer · Computer Vision · Machine Learning · Intelligent Systems**
+
+I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
 
 I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
 
