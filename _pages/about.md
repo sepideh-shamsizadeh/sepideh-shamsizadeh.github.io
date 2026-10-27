@@ -1,60 +1,135 @@
 ---
 permalink: /
-title: "Welcome to my Journey"
-excerpt: "About me"
+title: "About Me"
+excerpt: "AI & Robotics Engineer | Computer Vision | Machine Learning | Intelligent Systems"
 author_profile: true
-redirect_from: 
+redirect_from:
   - /about/
   - /about.html
 ---
 
-Hello, I am Sepideh Shamsizadeh, a dedicated professional with a passion for artificial intelligence and robotics. Let me take you through my academic and professional odyssey.
+# Hello, I'm Sepideh Shamsizadeh 👋
 
-<img align="right" width="300" height="300" src="/images/rob-sep.png" alt="Tech Image">
+**AI & Robotics Engineer | Computer Vision | Machine Learning | Intelligent Systems**
 
-### Academic Background:
+I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
 
-I graduated with a Master's degree in Computer Engineering, specializing in AI and Robotics, from the esteemed University of Padova. Currently, I am leveraging my skills as a Project Manager at Eurapco, where I lead an AI team working on LLM & GenAI projects.
+My expertise spans **computer vision, machine learning, deep learning, robotics, and software engineering**. I enjoy exploring complex technical challenges, developing innovative solutions, and transforming ideas into working systems.
 
-### From Curious Student to Robotics Enthusiast:
+What motivates me most is the freedom to explore, discover, and build technology that makes a meaningful difference in people's lives.
 
-My academic journey began with a love for mathematics and problem-solving. In high school, I excelled academically, achieving the second place in the Tehran Province Junior High School Mathematics Olympiad. This success continued as I ranked in the top 5% among more than 450,000 participants in the Iranian nationwide university entrance examination for the B.Sc. Program (2010).
+<img align="right" width="280" src="/images/rob-sep.png" alt="Robotics Project">
 
-### Bachelor's Degree in IT:
+## Professional Experience
 
-I pursued my Bachelor's degree in IT at the University of Technology Kermanshah, Iran. Despite a modest overall GPA, I consistently ranked as the first top student in specialized courses such as Design Algorithm, Artificial Intelligence, and Theory of Languages and Automata.
+My professional journey combines academic research, applied AI development, and software engineering across different industries.
 
-During my bachelor's, I also engaged in freelancing projects and maintained a website. Before completing my bachelor's, I achieved the impressive rank of 189 among more than 30,000 participants in the Iranian nationwide university entrance examination for the M.Sc. Program (2013).
+As a **Research Assistant at the Zurich University of Applied Sciences (ZHAW)**, I worked on research and industry collaborations involving machine learning, computer vision, multimodal sensor data, and intelligent software systems.
 
-### First Master's Degree in Health Information Technology Engineering:
+My projects included:
 
-I embarked on my first Master's degree in Health Information Technology Engineering at the University of Tehran. Despite personal challenges, I became the top student for the first two semesters. My fascination with genes and DNA led me to explore bioinformatics, resulting in a master's thesis on "A novel algorithm to identify cancer-associated microRNAs."
+- **Multimodal Machine Learning:** Developing self-supervised learning and sensor fusion approaches for animal behavior recognition using IMU and GNSS data.
+- **Computer Vision:** Developing image annotation and segmentation solutions for graphene microscopy.
+- **Time-Series Forecasting:** Building and evaluating machine learning and deep learning models for predictive analytics.
+- **AI-Powered Applications:** Exploring intelligent automation and LLM-assisted workflows.
 
-During my master's, I worked on freelancing projects, joined a startup focusing on NLP, and eventually led the R&D team. Simultaneously, I contributed to the academic community by publishing a paper on cancer microRNA association discovery.
+Previously, I worked on AI and software development projects involving natural language processing, healthcare applications, and generative AI.
 
-### Second Master's Degree in AI and Robotics:
+One of my earlier projects involved developing an **NLP-based medical coding assistant**, taking the system from research and development through real-world deployment.
 
-Driven by a passion for AI and robotics, I pursued a second master's degree in Italy. I excelled in the entrance examination, securing a spot in the program. Throughout this journey, I engaged in courses on Intelligent Robotics, Industrial Robotics, Robotics and Control, Computer Vision, and 3D Vision.
+These experiences strengthened my ability to work across the full development lifecycle, from problem definition and experimentation to implementation, evaluation, and deployment.
 
-### Self-Driving Cars and Intelligent Robotics:
+## Academic Background
 
-Participating in the Bosch Future Mobility Self-Driving competition, I contributed to a team effort, gaining insights into self-driving car technology. Simultaneously, I worked on a mobile robot for my Intelligent Robotics course, utilizing ROS and Gazebo.
+My interest in engineering began with mathematics, logical reasoning, and a curiosity about how things work. Over time, that curiosity evolved into a passion for artificial intelligence and robotics.
 
-### Robot Project:
+I hold two master's degrees:
 
-Currently, I am working on a fascinating robot project as a sideline to my job at Eurapco. I am assembling it from scratch, configuring, and programming it. Soon, I will launch a YouTube channel to share my knowledge on robot programming and configuration, allowing enthusiasts to learn alongside me.
+### M.Sc. in Computer Engineering — Artificial Intelligence and Robotics
 
-### Project Manager at Eurapco:
+**University of Padova, Italy**
 
-Recognizing the need for enhanced time management and international communication skills, I transitioned to Eurapco as a Project Manager. This unique alliance of leading European insurance companies allows me to work on exciting projects while balancing my personal pursuits.
+I specialized in artificial intelligence, computer vision, intelligent robotics, robot control, and 3D perception.
 
-### Continuous Learning:
+During my studies, I gained hands-on experience with autonomous robotic systems, ROS, simulation environments, and perception algorithms.
 
-In my pursuit of excellence, I am committed to continuous learning. I regularly enroll in online courses on platforms such as Udemy and Coursera to stay at the forefront of advancements in AI and robotics.
+My academic and research projects included:
 
-### Future Goals:
+- Camera and LiDAR-based perception and calibration.
+- 3D reconstruction and point cloud processing.
+- Autonomous mobile robotics and navigation.
+- Computer vision and machine learning for robotic applications.
 
-While I cherish my current role, my ultimate goal is to become a professor. I aspire to contribute to the cutting edge of science, collaborate with bright minds, and foster a dynamic learning environment. Through this website, I will share my projects, research summaries, the progress of my personal robot, and some of my hobbies, including painting and book recommendations.
+My research also contributed to **PanNote**, a robotic perception and automatic annotation framework published at **ICRA 2024**.
 
-Stay tuned for updates, and soon, I'll be launching a YouTube channel to share my knowledge on robot programming and configuration. Thank you for joining me on this incredible academic journey!
+### M.Sc. in Health Information Technology Engineering
 
+**University of Tehran, Iran**
+
+My first master's degree introduced me to interdisciplinary research, combining computer science, machine learning, and biomedical applications.
+
+For my thesis, I developed an algorithm to identify cancer-associated microRNAs, exploring computational approaches to understanding complex biological relationships.
+
+This experience helped shape my interest in using AI to solve challenging, real-world problems.
+
+### B.Sc. in Information Technology Engineering
+
+**Kermanshah University of Technology, Iran**
+
+My undergraduate studies provided a strong foundation in algorithms, programming, mathematics, and computer science.
+
+I developed a particular interest in artificial intelligence, algorithm design, and computational problem-solving, which ultimately guided my academic and professional direction.
+
+## Robotics & Personal Projects
+
+### TISHTAR — Autonomous Mobile Robot
+
+One of my most meaningful personal projects is **TISHTAR**, a four-wheeled autonomous mobile robot that I am designing and developing from the ground up.
+
+TISHTAR is my practical platform for exploring autonomous navigation, computer vision, sensor fusion, and intelligent decision-making.
+
+The system combines:
+
+- **ROS 2** for modular robotic software development and communication.
+- **Raspberry Pi and STM32** for distributed onboard computing and low-level control.
+- **Camera, LiDAR, IMU, and encoders** for perception and motion sensing.
+- **Localization, SLAM, and path planning** for autonomous navigation.
+- **Python and C++** for robotic software development.
+
+Through this project, I aim to explore the complete process of building an autonomous robot, from electronics and embedded programming to perception, planning, and intelligent behavior.
+
+TISHTAR reflects what I enjoy most about engineering: **turning an ambitious idea into something tangible, one technical challenge at a time.**
+
+## Research & Publications
+
+My research interests lie at the intersection of:
+
+- **Robot Perception & Autonomous Navigation**
+- **Computer Vision & 3D Scene Understanding**
+- **Deep Learning & Multimodal Sensor Fusion**
+- **Self-Supervised Learning**
+- **Intelligent and Assistive Robotics**
+
+I have contributed to research involving robotics, computer vision, medical image analysis, and applied machine learning.
+
+I am particularly interested in creating robots that can perceive their surroundings, understand complex environments, and assist people in meaningful ways.
+
+## Beyond Engineering
+
+My curiosity extends beyond AI and robotics. I'm interested in understanding how people think, how decisions are made, and how scientific discoveries shape our understanding of the world.
+
+I enjoy learning new things, reading, painting, and exploring ideas across science, technology, and philosophy.
+
+I believe creativity and curiosity are essential to engineering. Some of the most interesting solutions emerge when we look beyond familiar approaches and ask new questions.
+
+## Looking Ahead
+
+My long-term ambition is to contribute to the development of intelligent, autonomous systems that move beyond research environments and become useful in everyday life.
+
+I am especially excited by the future of **robot perception, embodied AI, and assistive robotics**, where advances in machine learning and robotics can come together to create systems that understand and interact with the physical world.
+
+For me, engineering is not simply about applying existing technologies. It is about **discovering what is possible and building what does not yet exist.**
+
+Through this website, I share my research, technical projects, experiments, and lessons learned along the way.
+
+**Welcome to my journey of exploring, learning, and building intelligent systems.**
