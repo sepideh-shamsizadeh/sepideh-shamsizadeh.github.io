@@ -1,137 +1,138 @@
 ---
 permalink: /
 title: "About Me"
-excerpt: "AI & Robotics Engineer | Computer Vision | Machine Learning | Intelligent Systems"
-author_profile: true
+excerpt: "Robotics & AI Engineer | Robotic Perception | Machine Learning | 3D Vision & Sensor Fusion"
+layout: onepager
+author_profile: false
 redirect_from:
   - /about/
   - /about.html
 ---
 
-# Hello, I'm Sepideh Shamsizadeh 👋
+{% include base_path %}
 
-**AI & Robotics Engineer · Computer Vision · Machine Learning · Intelligent Systems**
+<div class="op-card">
 
-I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
+<aside class="op-side">
+  <div class="op-photo">
+    <img src="{{ base_path }}/images/photo_2026-10-27_11-11-19.jpg" alt="Portrait of Sepideh Shamsizadeh">
+  </div>
 
-I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
+  <section class="op-builder">
+    <h3>The Builder</h3>
+    <p>Driven to discover.<br>Determined to build.</p>
+  </section>
 
-My expertise spans **computer vision, machine learning, deep learning, robotics, and software engineering**. I enjoy exploring complex technical challenges, developing innovative solutions, and transforming ideas into working systems.
+  <section>
+    <h3>Core Expertise</h3>
+    <ul>
+      <li>Robotic perception</li>
+      <li>Machine learning</li>
+      <li>3D vision &amp; sensor fusion</li>
+      <li>Real-time systems</li>
+    </ul>
+  </section>
 
-What motivates me most is the freedom to explore, discover, and build technology that makes a meaningful difference in people's lives.
+  <section>
+    <h3>Engineering Toolkit</h3>
+    <div class="op-tags">
+      <span>Python</span><span>C++17</span><span>PyTorch</span><span>OpenCV</span>
+      <span>ROS / ROS 2</span><span>Linux</span><span>Docker</span><span>Git</span>
+      <span>CI/CD</span><span>SIFT</span><span>Ceres</span><span>PointNet</span>
+      <span>SLAM</span><span>Point clouds</span>
+    </div>
+  </section>
 
-<img align="right" width="280" src="/images/rob-sep.png" alt="Robotics Project">
+  <section class="op-edu">
+    <h3>Education</h3>
+    <ul>
+      <li><strong>MSc · AI &amp; Robotics</strong><span>University of Padova</span></li>
+      <li><strong>MSc · Health IT</strong><span>University of Tehran</span></li>
+      <li><strong>BSc · Information Technology</strong><span>Kermanshah University of Technology</span></li>
+    </ul>
+  </section>
 
-## Professional Experience
+  <div class="op-place">
+    <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Zurich, Switzerland</p>
+    <p><i class="fas fa-id-card" aria-hidden="true"></i> B work permit</p>
+  </div>
+</aside>
 
-My professional journey combines academic research, applied AI development, and software engineering across different industries.
+<div class="op-body">
+  <h1 class="op-name">Sepideh Shamsizadeh</h1>
+  <p class="op-role">Robotics &amp; AI Engineer</p>
+  <p class="op-tagline">Curious enough to imagine. Bold enough to build.</p>
 
-As a **Research Assistant at the Zurich University of Applied Sciences (ZHAW)**, I worked on research and industry collaborations involving machine learning, computer vision, multimodal sensor data, and intelligent software systems.
+  <div class="op-links">
+    <a class="op-primary" href="mailto:sepideh.92sh@gmail.com"><i class="fas fa-envelope" aria-hidden="true"></i> Get in touch</a>
+    <a href="{{ base_path }}/story/"><i class="fas fa-book-open" aria-hidden="true"></i> My story</a>
+    <a href="{{ base_path }}/files/Sepideh-Shamsizadeh-CV.pdf"><i class="fas fa-file-pdf" aria-hidden="true"></i> CV</a>
+    <a href="https://github.com/sepideh-shamsizadeh"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a>
+    <a href="https://www.linkedin.com/in/sepideh-shamsizadeh"><i class="fab fa-linkedin" aria-hidden="true"></i> LinkedIn</a>
+    <a href="https://scholar.google.com/citations?hl=en&amp;user=Ksh-JpQAAAAJ"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Scholar</a>
+  </div>
 
-My projects included:
+  <h2>About Me</h2>
+  <p class="op-about">I connect research with hands-on engineering to turn challenging ideas into working intelligent systems — from sensing and model development to deployment. I thrive on curiosity, technical ownership and meaningful impact. <a class="op-inline" href="{{ base_path }}/story/">Read my full story →</a></p>
 
-- **Multimodal Machine Learning:** Developing self-supervised learning and sensor fusion approaches for animal behavior recognition using IMU and GNSS data.
-- **Computer Vision:** Developing image annotation and segmentation solutions for graphene microscopy.
-- **Time-Series Forecasting:** Building and evaluating machine learning and deep learning models for predictive analytics.
-- **AI-Powered Applications:** Exploring intelligent automation and LLM-assisted workflows.
+  <h2>Selected Engineering Impact</h2>
+  <div class="op-impact">
+    <div><strong>76% → 96%</strong><span>Clinical coding accuracy</span></div>
+    <div><strong>~0.15%</strong><span>Camera–LiDAR calibration error</span></div>
+    <div><strong>ICRA 2024</strong><span>Robotics publication</span></div>
+  </div>
 
-Previously, I worked on AI and software development projects involving natural language processing, healthcare applications, and generative AI.
+  <h2>Selected Experience</h2>
+  <ul class="op-timeline">
+    <li>
+      <h4><small>2024–2026</small> ZHAW · Zurich University of Applied Sciences</h4>
+      <p>Multimodal self-supervised learning, edge-cloud pipelines and resource-aware deployment.</p>
+    </li>
+    <li>
+      <h4><small>2023–2024</small> Eurapco</h4>
+      <p>Coordinated a generative-AI and knowledge-graph prototype for insurance.</p>
+    </li>
+    <li>
+      <h4><small>2022–2023</small> University of Padova</h4>
+      <p>Real-time YOLOv7 + LiDAR perception and camera-LiDAR calibration; ICRA 2024 co-author.</p>
+    </li>
+    <li>
+      <h4><small>2017–2019</small> Kavosh</h4>
+      <p>Led ML R&amp;D for a clinical coding assistant, increasing accuracy from 76% to 96%.</p>
+    </li>
+  </ul>
 
-One of my earlier projects involved developing an **NLP-based medical coding assistant**, taking the system from research and development through real-world deployment.
+  <h2>Selected Projects</h2>
+  <div class="op-projects">
+    <a class="op-project" href="{{ base_path }}{% post_url 2023-10-06-3d-reconstruction-structure-from-motion %}">
+      <h4>Structure from Motion</h4>
+      <p>C++ 3D reconstruction pipeline using SIFT matching, multi-view geometry, bundle adjustment and Ceres Solver.</p>
+      <span class="op-more">Read the write-up →</span>
+    </a>
+    <a class="op-project" href="{{ base_path }}{% post_url 2023-10-16-pointnet-segmentation-python-pytorch %}">
+      <h4>PointNet · 3D Segmentation</h4>
+      <p>Segmented SemanticKITTI LiDAR point clouds into traversability classes, reaching 96% accuracy.</p>
+      <span class="op-more">Read the write-up →</span>
+    </a>
+    <div class="op-project">
+      <h4>PanNote · Robot Perception</h4>
+      <p>Automated panoramic annotation of people positions for mobile robots; published at ICRA 2024.</p>
+    </div>
+    <div class="op-project">
+      <h4>Multimodal Sensor Learning</h4>
+      <p>Self-supervised IMU + GNSS representations for animal-behaviour recognition.</p>
+    </div>
+    <a class="op-project op-project--wide" href="{{ base_path }}{% post_url 2025-10-25-raspberry-pi-camera-ubuntu %}">
+      <h4>TISHTAR · Personal Robot</h4>
+      <p>Designing and building a four-wheeled autonomous mobile robot from the ground up — Raspberry Pi and STM32, encoders, camera, LiDAR, IMU and ROS 2 — for SLAM, localization and path planning.</p>
+      <span class="op-more">Follow the build log →</span>
+    </a>
+  </div>
 
-These experiences strengthened my ability to work across the full development lifecycle, from problem definition and experimentation to implementation, evaluation, and deployment.
+  <div class="op-cta">
+    <h3>Let's turn big ideas into working systems.</h3>
+    <p><a href="mailto:sepideh.92sh@gmail.com">sepideh.92sh@gmail.com</a> &nbsp;|&nbsp; <a href="https://github.com/sepideh-shamsizadeh">github.com/sepideh-shamsizadeh</a></p>
+  </div>
+</div>
 
-## Academic Background
-
-My interest in engineering began with mathematics, logical reasoning, and a curiosity about how things work. Over time, that curiosity evolved into a passion for artificial intelligence and robotics.
-
-I hold two master's degrees:
-
-### M.Sc. in Computer Engineering — Artificial Intelligence and Robotics
-
-**University of Padova, Italy**
-
-I specialized in artificial intelligence, computer vision, intelligent robotics, robot control, and 3D perception.
-
-During my studies, I gained hands-on experience with autonomous robotic systems, ROS, simulation environments, and perception algorithms.
-
-My academic and research projects included:
-
-- Camera and LiDAR-based perception and calibration.
-- 3D reconstruction and point cloud processing.
-- Autonomous mobile robotics and navigation.
-- Computer vision and machine learning for robotic applications.
-
-My research also contributed to **PanNote**, a robotic perception and automatic annotation framework published at **ICRA 2024**.
-
-### M.Sc. in Health Information Technology Engineering
-
-**University of Tehran, Iran**
-
-My first master's degree introduced me to interdisciplinary research, combining computer science, machine learning, and biomedical applications.
-
-For my thesis, I developed an algorithm to identify cancer-associated microRNAs, exploring computational approaches to understanding complex biological relationships.
-
-This experience helped shape my interest in using AI to solve challenging, real-world problems.
-
-### B.Sc. in Information Technology Engineering
-
-**Kermanshah University of Technology, Iran**
-
-My undergraduate studies provided a strong foundation in algorithms, programming, mathematics, and computer science.
-
-I developed a particular interest in artificial intelligence, algorithm design, and computational problem-solving, which ultimately guided my academic and professional direction.
-
-## Robotics & Personal Projects
-
-### TISHTAR — Autonomous Mobile Robot
-
-One of my most meaningful personal projects is **TISHTAR**, a four-wheeled autonomous mobile robot that I am designing and developing from the ground up.
-
-TISHTAR is my practical platform for exploring autonomous navigation, computer vision, sensor fusion, and intelligent decision-making.
-
-The system combines:
-
-- **ROS 2** for modular robotic software development and communication.
-- **Raspberry Pi and STM32** for distributed onboard computing and low-level control.
-- **Camera, LiDAR, IMU, and encoders** for perception and motion sensing.
-- **Localization, SLAM, and path planning** for autonomous navigation.
-- **Python and C++** for robotic software development.
-
-Through this project, I aim to explore the complete process of building an autonomous robot, from electronics and embedded programming to perception, planning, and intelligent behavior.
-
-TISHTAR reflects what I enjoy most about engineering: **turning an ambitious idea into something tangible, one technical challenge at a time.**
-
-## Research & Publications
-
-My research interests lie at the intersection of:
-
-- **Robot Perception & Autonomous Navigation**
-- **Computer Vision & 3D Scene Understanding**
-- **Deep Learning & Multimodal Sensor Fusion**
-- **Self-Supervised Learning**
-- **Intelligent and Assistive Robotics**
-
-I have contributed to research involving robotics, computer vision, medical image analysis, and applied machine learning.
-
-I am particularly interested in creating robots that can perceive their surroundings, understand complex environments, and assist people in meaningful ways.
-
-## Beyond Engineering
-
-My curiosity extends beyond AI and robotics. I'm interested in understanding how people think, how decisions are made, and how scientific discoveries shape our understanding of the world.
-
-I enjoy learning new things, reading, painting, and exploring ideas across science, technology, and philosophy.
-
-I believe creativity and curiosity are essential to engineering. Some of the most interesting solutions emerge when we look beyond familiar approaches and ask new questions.
-
-## Looking Ahead
-
-My long-term ambition is to contribute to the development of intelligent, autonomous systems that move beyond research environments and become useful in everyday life.
-
-I am especially excited by the future of **robot perception, embodied AI, and assistive robotics**, where advances in machine learning and robotics can come together to create systems that understand and interact with the physical world.
-
-For me, engineering is not simply about applying existing technologies. It is about **discovering what is possible and building what does not yet exist.**
-
-Through this website, I share my research, technical projects, experiments, and lessons learned along the way.
-
-**Welcome to my journey of exploring, learning, and building intelligent systems.**
+</div>
