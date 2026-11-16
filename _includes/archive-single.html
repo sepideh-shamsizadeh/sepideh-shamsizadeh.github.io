@@ -1,9 +1,19 @@
 {% include base_path %}
-<article class="archive-entry" itemscope itemtype="https://schema.org/CreativeWork">
-  {% if post.date %}<p class="page-meta"><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: '%d %B %Y' }}</time>{% if post.venue %} · {{ post.venue }}{% endif %}</p>{% endif %}
-  <h2 itemprop="headline"><a href="{{ post.link | default: post.url | relative_url }}">{{ post.title }}</a></h2>
-  {% if post.link %}<a class="fine" href="{{ post.url | relative_url }}">Local project notes ↗</a>{% endif %}
-  {% if post.excerpt %}<div itemprop="description">{{ post.excerpt | markdownify }}</div>{% endif %}
-  {% if post.paperurl %}<a class="fine" href="{{ post.paperurl }}">Read publication ↗</a>{% endif %}
-  {% if post.citation %}<details class="disclosure"><summary>Citation</summary>{{ post.citation }}</details>{% endif %}
+{% if post.id %}
+  {% assign title = post.title | markdownify | remove: "<p>" | remove: "</p>" | strip %}
+{% else %}
+  {% assign title = post.title %}
+{% endif %}
+{% assign show_date = false %}
+{% if post.collection == 'posts' or post.collection == 'talks' or post.collection == 'publications' or post.collection == 'teaching' %}{% assign show_date = true %}{% endif %}
+
+<article class="entry{% unless show_date %} entry--nodate{% endunless %}" itemscope itemtype="http://schema.org/CreativeWork">
+  {% if show_date %}
+    <time class="entry__date" datetime="{{ post.date | date_to_xmlschema }}">{% if post.collection == 'posts' %}{{ post.date | date: "%Y-%m-%d" }}{% else %}{{ post.date | date: "%Y" }}{% endif %}</time>
+  {% endif %}
+  <div>
+    <h3 class="entry__title" itemprop="headline"><a href="{% if post.link %}{{ post.link }}{% else %}{{ base_path }}{{ post.url }}{% endif %}" rel="permalink">{{ title }}</a></h3>
+    {% if post.excerpt %}<p class="entry__excerpt" itemprop="description">{{ post.excerpt | markdownify | strip_html | strip | truncate: 260 }}</p>{% endif %}
+    {% if post.venue %}<p class="entry__cite">{{ post.venue }}</p>{% endif %}
+  </div>
 </article>

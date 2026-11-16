@@ -1,7 +1,12 @@
 ---
 layout: default
 ---
-<main id="main" class="site-container archive-page">
-  {% include page-heading.html %}
-  <div class="archive-content">{{ content }}</div>
+
+{% include base_path %}
+
+<main id="main" class="wrap{% unless page.wide %} wrap--read{% endunless %}" role="main">
+  {% include page-header.html eyebrow=page.eyebrow title=page.title lead=page.lead %}
+  <div class="archive">
+    {{ content }}
+  </div>
 </main>

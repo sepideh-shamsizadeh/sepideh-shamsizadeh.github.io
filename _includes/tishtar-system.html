@@ -1,0 +1,42 @@
+{% comment %}
+  Logical system view of Tishtar. Solid accent links = bench-tested, dashed = planned.
+  Logical only: no wiring, power or undecided protocols are implied.
+{% endcomment %}
+<figure class="sys">
+  <div class="sys__scroll">
+    <svg class="sys__svg" viewBox="0 0 760 300" role="img" aria-labelledby="sys-title sys-desc">
+      <title id="sys-title">Tishtar system architecture</title>
+      <desc id="sys-desc">A development PC talks to a Raspberry Pi 4B over ROS 2 (planned). The Pi talks to an STM32 over a serial link (planned). Camera capture over CSI, the PCA9685 servo controller over I2C, and STM32 PWM motor control are bench-tested. LiDAR, IMU and ultrasonic sensors are planned.</desc>
+      <defs>
+        <marker id="sys-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="sys-head sys-head--ok"/></marker>
+        <marker id="sys-arrow-plan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="sys-head"/></marker>
+      </defs>
+
+      <!-- links -->
+      <path class="sys-e sys-e--plan" d="M172 150H301" marker-end="url(#sys-arrow-plan)" marker-start="url(#sys-arrow-plan)"/>
+      <text class="sys-l" x="236" y="141" text-anchor="middle">ROS 2</text>
+      <path class="sys-e sys-e--plan" d="M457 150H586" marker-end="url(#sys-arrow-plan)" marker-start="url(#sys-arrow-plan)"/>
+      <text class="sys-l" x="521" y="141" text-anchor="middle">serial</text>
+      <path class="sys-e sys-e--plan" d="M380 68V118" marker-end="url(#sys-arrow-plan)"/>
+      <path class="sys-e sys-e--ok" d="M265 230 328 182" marker-end="url(#sys-arrow-ok)"/>
+      <text class="sys-l sys-l--ok" x="279" y="200" text-anchor="end">CSI</text>
+      <path class="sys-e sys-e--ok" d="M432 182 495 230" marker-end="url(#sys-arrow-ok)"/>
+      <text class="sys-l sys-l--ok" x="481" y="200">I²C 0x40</text>
+      <path class="sys-e sys-e--ok" d="M665 180V228" marker-end="url(#sys-arrow-ok)"/>
+      <text class="sys-l sys-l--ok" x="673" y="208">PWM</text>
+
+      <!-- nodes -->
+      <g class="sys-n"><rect x="20" y="122" width="150" height="56" rx="8"/><text class="sys-t" x="36" y="146">Dev PC</text><text class="sys-s" x="36" y="164">ubuntu · rviz</text></g>
+      <g class="sys-n sys-n--core"><rect x="305" y="122" width="150" height="56" rx="8"/><text class="sys-t" x="321" y="146">Raspberry Pi 4B</text><text class="sys-s" x="321" y="164">ros2 · perception</text></g>
+      <g class="sys-n"><rect x="590" y="122" width="150" height="56" rx="8"/><text class="sys-t" x="606" y="146">STM32 F446RE</text><text class="sys-s" x="606" y="164">real-time control</text></g>
+      <g class="sys-n sys-n--plan"><rect x="305" y="14" width="150" height="52" rx="8"/><text class="sys-t" x="321" y="37">Range &amp; inertial</text><text class="sys-s" x="321" y="54">lidar · imu · sonar</text></g>
+      <g class="sys-n sys-n--ok"><rect x="190" y="232" width="140" height="52" rx="8"/><text class="sys-t" x="206" y="255">Camera</text><text class="sys-s" x="206" y="272">imx219</text></g>
+      <g class="sys-n sys-n--ok"><rect x="430" y="232" width="140" height="52" rx="8"/><text class="sys-t" x="446" y="255">PCA9685</text><text class="sys-s" x="446" y="272">pan · tilt servos</text></g>
+      <g class="sys-n"><rect x="590" y="232" width="150" height="52" rx="8"/><text class="sys-t" x="606" y="255">Drive</text><text class="sys-s" x="606" y="272">dc motors · encoders</text></g>
+    </svg>
+  </div>
+  <figcaption class="tr-note">
+    <span class="tr-legend"><i class="sys-key sys-key--ok"></i>bench-tested <i class="sys-key"></i>planned</span>
+    <span>Logical view, not a wiring diagram.</span>
+  </figcaption>
+</figure>

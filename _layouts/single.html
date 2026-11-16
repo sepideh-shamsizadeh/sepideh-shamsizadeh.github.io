@@ -1,20 +1,40 @@
 ---
 layout: default
 ---
+
 {% include base_path %}
-<main id="main" class="site-container reading-page">
-  <a class="back-link" href="{{ base_path }}/{% if page.collection == 'posts' %}year-archive/{% elsif page.collection == 'portfolio' %}portfolio/{% endif %}">← {% if page.collection == 'posts' %}All writing{% elsif page.collection == 'portfolio' %}All projects{% else %}Home{% endif %}</a>
-  {% include page-heading.html %}
-  {% if page.header.image or page.header.overlay_image %}{% include page__hero.html %}{% endif %}
-  <article class="prose" itemscope itemtype="https://schema.org/CreativeWork">
-    <meta itemprop="headline" content="{{ page.title | escape }}">
-    <div itemprop="text">{{ content }}</div>
-    {% if page.link %}<p><a class="button" href="{{ page.link }}">Read more ↗</a></p>{% endif %}
-    {% if page.citation %}<details class="disclosure"><summary>Citation &amp; publication details</summary><p>{{ page.citation }}</p>{% if page.paperurl %}<a href="{{ page.paperurl }}">Read the paper ↗</a>{% endif %}</details>{% endif %}
+
+{% if page.collection == 'posts' %}
+  {% capture eyebrow %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%Y-%m-%d" }}</time>{% if page.read_time %} · {% include read-time.html %}{% endif %}{% endcapture %}
+{% elsif page.collection == 'teaching' %}
+  {% capture eyebrow %}{{ page.type }} · {{ page.venue }} · {{ page.date | date: "%Y" }}{% endcapture %}
+{% elsif page.venue and page.date %}
+  {% capture eyebrow %}{{ page.venue }} · {{ page.date | date: "%Y" }}{% endcapture %}
+{% else %}
+  {% assign eyebrow = page.eyebrow %}
+{% endif %}
+
+{% unless page.collection == 'posts' %}{% assign lead = page.lead | default: page.excerpt %}{% endunless %}
+
+<main id="main" class="wrap wrap--read" role="main">
+  <article class="page" itemscope itemtype="http://schema.org/CreativeWork">
+    {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+    {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date: "%B %d, %Y" }}">{% endif %}
+
+    {% include page-header.html eyebrow=eyebrow title=page.title lead=lead %}
+
+    <div class="prose page__content" itemprop="text">
+      {{ content }}
+      {% if page.citation %}<p>Recommended citation: {{ page.citation }}{% if page.paperurl %} <a href="{{ page.paperurl }}">{{ page.paperurl }}</a>{% endif %}</p>{% endif %}
+      {% if page.link %}<p><a href="{{ page.link }}" class="button">{{ site.data.ui-text[site.locale].ext_link_label | default: "Direct Link" }}</a></p>{% endif %}
+    </div>
+
+    {% if page.collection == 'posts' or page.collection == 'portfolio' %}
+      <footer class="post-foot">
+        {% include page__taxonomy.html %}
+        {% include post_pagination.html %}
+      </footer>
+    {% endif %}
+
   </article>
-  <div class="article-end"><p>Written by <a href="{{ base_path }}/story/">Sepideh Shamsizadeh</a> · Robotics &amp; AI Engineer</p>{% include page__taxonomy.html %}</div>
-  {% if page.share %}{% include social-share.html %}{% endif %}
-  {% include post_pagination.html %}
-  {% if site.comments.provider and page.comments %}{% include comments.html %}{% endif %}
-  {% if page.id and page.related and site.related_posts.size > 0 %}<section class="related-reading"><h2>Keep exploring</h2>{% for post in site.related_posts limit:3 %}{% include archive-single.html %}{% endfor %}</section>{% endif %}
 </main>

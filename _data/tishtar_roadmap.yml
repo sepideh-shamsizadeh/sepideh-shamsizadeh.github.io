@@ -3,8 +3,11 @@ repository_url: https://github.com/sepideh-shamsizadeh/tishtar-robot
 documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
 project_board_url:
 reviewed_on: '2026-11-16'
+# Where the robot stops on the roadmap track. Must be a completed milestone.
 # Builder-confirmed bench checkpoint; not a claim that earlier phases are complete.
 road_current_milestone_id: keyboard
+# One line shown on the current phase of the roadmap.
+current_focus: Calibrate servo limits, then bring pan-tilt control into ROS 2.
 statuses:
 - id: completed
   label: Completed
@@ -20,29 +23,28 @@ statuses:
   icon: "!"
 phases:
 - id: foundation
-  title: Foundation & Electronics
-  description: From a first motor movement to a reliable electrical foundation.
+  title: Foundation
+  description: Motor PWM, power distribution and toolchains.
 - id: camera
   title: Camera & Pan-Tilt
-  description: Give the robot a view of the world, then learn to direct its gaze.
+  description: Image capture and a two-axis servo gaze.
 - id: motion
-  title: Robot Motion & Control
-  description: Connect high-level intent to measured, controlled wheel motion.
+  title: Motion Control
+  description: Velocity commands, encoders, odometry and PID.
 - id: perception
-  title: Perception & Sensor Integration
-  description: Turn individual measurements into useful observations.
+  title: Perception
+  description: LiDAR, IMU, ultrasonic and camera in ROS 2.
 - id: mapping
-  title: Mapping & Localization
-  description: Build a consistent picture of where the robot is.
+  title: Localization & Mapping
+  description: TF tree, odometry–IMU fusion and SLAM.
 - id: navigation
-  title: Autonomous Navigation
-  description: Move from controlled motion to purposeful navigation.
+  title: Navigation
+  description: Path planning, obstacle avoidance, goal reaching.
 - id: intelligence
-  title: Intelligent Behaviors & Experiments
-  description: Research directions beyond the first autonomous journey.
+  title: Intelligent Behaviour
+  description: Active perception and learned world models.
 milestones:
 - id: repository
-  road_position: 0.03
   journal_id: repository
   title: Set up project repository
   description: 'Repository structure is published; GitHub issue #1 is closed.'
@@ -56,7 +58,6 @@ milestones:
   review_required: false
   evidence_source: Repository / issue
 - id: environments
-  road_position: 0.054103
   title: Establish Raspberry Pi and STM32 development environments
   description: Planned work; implementation has not been verified.
   phase: foundation
@@ -69,7 +70,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: motor-pwm
-  road_position: 0.078205
   journal_id: motor
   title: Test STM32 motor PWM control
   description: STM32 motor control was tested, as reported by the builder. Four-wheel
@@ -84,7 +84,6 @@ milestones:
   review_required: true
   evidence_source: Builder-reported bench result
 - id: four-motors
-  road_position: 0.102308
   title: Integrate four motors and motor drivers
   description: Planned work; implementation has not been verified.
   phase: foundation
@@ -99,7 +98,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: encoders
-  road_position: 0.12641
   title: Integrate wheel encoders
   description: Planned work; implementation has not been verified.
   phase: foundation
@@ -112,7 +110,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: power
-  road_position: 0.150513
   title: Establish safe power distribution
   description: Planned work; implementation has not been verified.
   phase: foundation
@@ -125,7 +122,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: assembly
-  road_position: 0.174615
   journal_id: assembly
   title: Assemble two-axis camera mechanism
   description: 'Issue #4 confirms assembly and camera mounting; assembly photographs
@@ -140,7 +136,6 @@ milestones:
   review_required: false
   evidence_source: Repository / issue
 - id: camera-capture
-  road_position: 0.198718
   journal_id: camera
   title: Install Raspberry Pi Camera v2.1 and verify capture
   description: Camera image capture verified by the builder. This does not establish
@@ -155,7 +150,6 @@ milestones:
   review_required: true
   evidence_source: Builder-reported bench result
 - id: pca9685
-  road_position: 0.222821
   journal_id: controller
   title: Configure PCA9685 controller
   description: 'Builder reports I2C detection at 0x40. Issue #5 still requires power
@@ -170,7 +164,6 @@ milestones:
   review_required: true
   evidence_source: GitHub issue + builder report
 - id: pan-tilt
-  road_position: 0.246923
   journal_id: servo
   title: Test independent pan and tilt control
   description: 'Builder reports pan on channel 1 and tilt on channel 0, with independent
@@ -185,7 +178,6 @@ milestones:
   review_required: true
   evidence_source: Builder-reported bench result
 - id: keyboard
-  road_position: 0.271026
   journal_id: servo
   title: Implement keyboard-based servo movement
   description: 'Python incremental keyboard servo control tested by the builder. Issue
@@ -200,7 +192,6 @@ milestones:
   review_required: true
   evidence_source: Builder-reported bench result
 - id: limits
-  road_position: 0.295128
   title: Calibrate mechanical limits
   description: Safe angle and pulse-width calibration is not yet verified.
   phase: camera
@@ -213,7 +204,6 @@ milestones:
   review_required: true
   evidence_source: Repository / issue
 - id: pan-ros
-  road_position: 0.319231
   title: Integrate pan-tilt control into ROS 2
   description: 'ROS 2 package, command interfaces and end-to-end testing remain planned
     in issue #7.'
@@ -229,7 +219,6 @@ milestones:
   review_required: true
   evidence_source: Repository / issue
 - id: interfaces
-  road_position: 0.343333
   title: Define motion-control interfaces
   description: Architecture notes describe the control hierarchy; serial message format
     and timing remain to be defined.
@@ -243,7 +232,6 @@ milestones:
   review_required: false
   evidence_source: Repository / issue
 - id: stm-ros
-  road_position: 0.367436
   title: Connect ROS 2 to STM32
   description: Planned work; implementation has not been verified.
   phase: motion
@@ -257,7 +245,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: velocity
-  road_position: 0.391538
   title: Implement velocity commands
   description: Planned work; implementation has not been verified.
   phase: motion
@@ -270,7 +257,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: encoder-feedback
-  road_position: 0.415641
   title: Integrate encoder feedback
   description: Planned work; implementation has not been verified.
   phase: motion
@@ -285,7 +271,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: odometry
-  road_position: 0.439744
   title: Implement wheel odometry
   description: Planned work; implementation has not been verified.
   phase: motion
@@ -299,7 +284,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: closed-loop
-  road_position: 0.463846
   title: Implement closed-loop speed control
   description: Planned work; implementation has not been verified.
   phase: motion
@@ -314,7 +298,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: lidar
-  road_position: 0.487949
   title: Integrate TF Mini LiDAR
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -327,7 +310,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: imu
-  road_position: 0.512051
   title: Integrate ICM-20948 IMU
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -340,7 +322,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: ultrasonic
-  road_position: 0.536154
   title: Integrate ultrasonic sensors
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -353,7 +334,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: camera-ros
-  road_position: 0.560256
   title: Publish camera images using ROS 2
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -366,7 +346,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: detection
-  road_position: 0.584359
   title: Implement object detection
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -379,7 +358,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: fusion
-  road_position: 0.608462
   title: Implement sensor calibration and fusion
   description: Planned work; implementation has not been verified.
   phase: perception
@@ -392,7 +370,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: tf
-  road_position: 0.632564
   title: Implement coordinate frames and TF transforms
   description: Planned work; implementation has not been verified.
   phase: mapping
@@ -405,7 +382,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: pose
-  road_position: 0.656667
   title: Estimate robot pose
   description: Planned work; implementation has not been verified.
   phase: mapping
@@ -418,7 +394,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: slam
-  road_position: 0.680769
   title: Develop mapping or SLAM
   description: Planned work; implementation has not been verified.
   phase: mapping
@@ -433,7 +408,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: odom-imu
-  road_position: 0.704872
   title: Fuse odometry and IMU
   description: Planned work; implementation has not been verified.
   phase: mapping
@@ -448,7 +422,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: localization-test
-  road_position: 0.728974
   title: Validate localization accuracy
   description: Planned work; implementation has not been verified.
   phase: mapping
@@ -461,7 +434,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: nav-stack
-  road_position: 0.753077
   title: Integrate navigation stack
   description: Planned work; implementation has not been verified.
   phase: navigation
@@ -474,7 +446,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: planning
-  road_position: 0.777179
   title: Implement path planning
   description: Planned work; implementation has not been verified.
   phase: navigation
@@ -487,7 +458,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: avoidance
-  road_position: 0.801282
   title: Implement obstacle avoidance
   description: Planned work; implementation has not been verified.
   phase: navigation
@@ -500,7 +470,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: goals
-  road_position: 0.825385
   title: Implement goal-based navigation
   description: Planned work; implementation has not been verified.
   phase: navigation
@@ -516,7 +485,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: navigation-test
-  road_position: 0.849487
   title: Evaluate navigation in real environments
   description: Planned work; implementation has not been verified.
   phase: navigation
@@ -529,7 +497,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: active-perception
-  road_position: 0.87359
   title: Active perception
   description: Planned work; implementation has not been verified.
   phase: intelligence
@@ -542,7 +509,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: semantics
-  road_position: 0.897692
   title: Semantic environment understanding
   description: Planned work; implementation has not been verified.
   phase: intelligence
@@ -555,7 +521,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: exploration
-  road_position: 0.921795
   title: Autonomous exploration
   description: Planned work; implementation has not been verified.
   phase: intelligence
@@ -568,7 +533,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: learning
-  road_position: 0.945897
   title: Learning-based decision making
   description: Planned work; implementation has not been verified.
   phase: intelligence
@@ -581,7 +545,6 @@ milestones:
   review_required: true
   evidence_source: Planning suggestion
 - id: world-model
-  road_position: 0.97
   title: Experimental world-model-based behaviors
   description: Planned work; implementation has not been verified.
   phase: intelligence

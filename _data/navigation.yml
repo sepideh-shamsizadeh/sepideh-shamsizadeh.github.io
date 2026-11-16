@@ -1,28 +1,15 @@
-# main links links
+# Main navigation. The home page is reached through the name in the header.
 main:
-  # - title: "Publications"
-  #   url: /publications/
-
-  # - title: "Talks"
-  #   url: /talks/    
-
-  # - title: "Teaching"
-  #   url: /teaching/    
-    
-  - title: "My Story"
+  - title: "story"
     url: /story/
 
-  - title: "Portfolio"
-    url: /portfolio/
-
-  - title: "TISHTAR"
+  - title: "tishtar"
     url: /tishtar/
-        
-  - title: "Blog Posts"
+
+  - title: "blog"
     url: /year-archive/
-    
-  # - title: "CV"
-  #  url: /files/Sepideh-Shamsizadeh-CV.pdf
-    
-  # - title: "Guide"
-  #   url: /markdown/
+
+  - title: "cv.pdf"
+    url: /files/Sepideh-Shamsizadeh-CV.pdf
+
+# Not in the menu, still published: /portfolio/ (its two items are also blog posts).

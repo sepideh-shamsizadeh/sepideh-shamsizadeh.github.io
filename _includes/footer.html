@@ -1,4 +1,13 @@
 {% include base_path %}
-<div class="site-footer-top"><div><a class="site-footer-name" href="{{ base_path }}/">Sepideh Shamsizadeh<span aria-hidden="true">.</span></a><p>Curious enough to imagine. Bold enough to build.</p></div><a class="button button--quiet" href="mailto:sepideh.92sh@gmail.com">Let’s talk <span aria-hidden="true">↗</span></a></div>
-<nav class="site-footer-links" aria-label="Footer navigation"><a href="https://github.com/{{ site.author.github }}">GitHub</a><a href="https://www.linkedin.com/in/{{ site.author.linkedin }}">LinkedIn</a><a href="{{ site.author.googlescholar }}">Google Scholar</a><a href="{{ base_path }}/publications/">Publications</a><a href="{{ base_path }}/cv/">CV</a><a href="{{ base_path }}/sitemap/">Sitemap</a><a href="{{ base_path }}/feed.xml">Feed</a></nav>
-<div class="site-footer-bottom"><span>© {{ site.time | date: '%Y' }} {{ site.name }} · Zurich, Switzerland</span><span>Built with <a href="https://jekyllrb.com/">Jekyll</a> · <a href="https://github.com/academicpages/academicpages.github.io">AcademicPages</a> / <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/">Minimal Mistakes</a></span></div>
+<div class="site-footer__inner">
+  <span>&copy; {{ site.time | date: '%Y' }} {{ site.name }} · {{ site.author.location }}</span>
+  <nav aria-label="Elsewhere">
+    {% if site.author.github %}<a href="https://github.com/{{ site.author.github }}">GitHub</a>{% endif %}
+    {% if site.author.linkedin %}<a href="https://www.linkedin.com/in/{{ site.author.linkedin }}">LinkedIn</a>{% endif %}
+    {% if site.author.googlescholar %}<a href="{{ site.author.googlescholar }}">Scholar</a>{% endif %}
+    {% if site.author.medium %}<a href="{{ site.author.medium }}">Medium</a>{% endif %}
+    {% if site.author.orcid %}<a href="{{ site.author.orcid }}">ORCID</a>{% endif %}
+    <a href="{% if site.atom_feed.path %}{{ site.atom_feed.path }}{% else %}{{ base_path }}/feed.xml{% endif %}">RSS</a>
+  </nav>
+  <span class="site-footer__build">build {{ site.time | date: '%Y-%m-%d' }} · jekyll · <span class="utc"></span></span>
+</div>

@@ -1,8 +1,9 @@
 ---
 permalink: /story/
 title: "My Story"
-description: "The longer version: how I got into AI and robotics, what I've worked on, and where I'm heading."
-author_profile: true
+excerpt: "The longer version: how I got into AI and robotics, what I've worked on, and where I'm heading."
+author_profile: false
+eyebrow: "About · the long version"
 ---
 
 I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
@@ -75,11 +76,11 @@ I developed a particular interest in artificial intelligence, algorithm design, 
 
 ## Robotics & Personal Projects
 
-### TISHTAR — Autonomous Mobile Robot
+### Tishtar — Autonomous Mobile Robot
 
-One of my most meaningful personal projects is **TISHTAR**, a four-wheeled autonomous mobile robot that I am designing and developing from the ground up.
+One of my most meaningful personal projects is **Tishtar**, a four-wheeled autonomous mobile robot that I am designing and developing from the ground up.
 
-TISHTAR is my practical platform for exploring autonomous navigation, computer vision, sensor fusion, and intelligent decision-making.
+Tishtar is my practical platform for exploring autonomous navigation, computer vision, sensor fusion, and intelligent decision-making.
 
 The system combines:
 
@@ -91,7 +92,7 @@ The system combines:
 
 Through this project, I aim to explore the complete process of building an autonomous robot, from electronics and embedded programming to perception, planning, and intelligent behavior.
 
-TISHTAR reflects what I enjoy most about engineering: **turning an ambitious idea into something tangible, one technical challenge at a time.**
+Tishtar reflects what I enjoy most about engineering: **turning an ambitious idea into something tangible, one technical challenge at a time.**
 
 ## Research & Publications
 

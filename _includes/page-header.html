@@ -1,0 +1,6 @@
+<header class="ph">
+  {% if include.eyebrow %}<p class="eyebrow">{{ include.eyebrow }}</p>{% endif %}
+  <h1 class="ph__title" itemprop="headline">{{ include.title | markdownify | remove: "<p>" | remove: "</p>" | strip }}</h1>
+  {% if include.lead %}<p class="ph__lead">{{ include.lead }}</p>{% endif %}
+  {% if include.meta %}<p class="ph__meta">{{ include.meta }}</p>{% endif %}
+</header>

@@ -1,13 +1,121 @@
 ---
 layout: tishtar
-project_id: tishtar
 permalink: /tishtar/
-title: "TISHTAR · Building an Autonomous Mobile Robot"
-excerpt: "A hands-on robotics journey, from the first motor movement toward autonomous navigation. Drive the browser demo and explore seven stages of the build."
+title: "Tishtar · Autonomous Mobile Robot"
+excerpt: "Tishtar is a four-wheeled autonomous mobile robot built from scratch: ROS 2, Raspberry Pi, STM32, camera, LiDAR and IMU. Roadmap, system design and build log."
 author_profile: false
 ---
 {% include base_path %}
 {% assign roadmap = site.data.tishtar_roadmap %}
-{% include tishtar-road.html %}
-<section class="section" aria-labelledby="tishtar-overview-title"><div class="project-overview"><div><p class="eyebrow">A personal robotics project</p><h2 id="tishtar-overview-title">One robot. A whole system to build.</h2><p>TISHTAR is a four-wheeled mobile robot I’m building from scratch to connect perception, sensor fusion, localization and control with the challenge of autonomous navigation.</p><p>Started in October 2026, it’s my way of turning individual robotics concepts into something that can sense, move and eventually make its own way through the world.</p></div><aside class="project-outcome"><p class="eyebrow">On the workbench now</p><h2>From a working gaze to ROS 2.</h2><p>Camera capture, PCA9685 detection and incremental keyboard servo control have been builder-tested. The current focus is safe movement limits, documenting the setup and connecting pan-tilt control to ROS 2.</p><a href="{{ roadmap.repository_url }}/issues/3">Follow the camera work ↗</a><p class="fine">Bench results are builder-confirmed. The full drivetrain and autonomous navigation are not yet verified.</p></aside></div></section>
-<section class="section" aria-labelledby="journey-title"><div class="section-heading"><div><p class="eyebrow">The journey</p><h2 id="journey-title">Seven stages toward autonomy.</h2></div><a href="{{ roadmap.repository_url }}/issues">Technical tasks on GitHub ↗</a></div><ol class="journey-grid">{% for stage in site.data.tishtar_journey %}{% include tishtar-stage-status.html id=stage.id %}<li class="journey-stage" id="milestone-{{ stage.id }}"><span class="eyebrow">Stage 0{{ forloop.index }}</span><h3>{{ stage.title }}</h3>{% include tishtar-status.html status=stage_status %}<p>{{ stage.description }}</p><a class="fine" href="{{ stage.issue_url | default: roadmap.documentation_url }}">{% if stage.issue_url %}Build notes &amp; GitHub discussion{% else %}Explore the architecture notes{% endif %} ↗</a></li>{% endfor %}</ol><p class="fine">Stage labels are derived from the underlying engineering roadmap. A bench test is a step forward, not a claim that an entire stage is complete.</p></section>
+{% assign completed = roadmap.milestones | where: 'status', 'completed' %}
+{% assign total = roadmap.milestones.size %}
+{% assign here = roadmap.milestones | where: 'id', roadmap.road_current_milestone_id | first %}
+{% for phase in roadmap.phases %}{% if phase.id == here.phase %}{% assign here_phase = forloop.index %}{% endif %}{% endfor %}
+
+<header class="tr-hero">
+  <div>
+    <p class="eyebrow"><span class="status-dot"></span>Personal robotics project · since Oct 2026</p>
+    <h1 class="tr-hero__title">Tishtar</h1>
+    <p class="ph__lead">A four-wheeled autonomous mobile robot, built from scratch. One subsystem at a time: actuation, sensing, state estimation, navigation.</p>
+    <dl class="tr-stats">
+      <div><dt>phase</dt><dd>0{{ here_phase }}<span>/0{{ roadmap.phases.size }}</span></dd></div>
+      <div><dt>milestones</dt><dd>{{ completed.size }}<span>/{{ total }}</span></dd></div>
+      <div><dt>middleware</dt><dd>ROS 2</dd></div>
+    </dl>
+    <div class="actions">
+      <a class="button button--primary" href="#roadmap">Roadmap ↓</a>
+      <a class="button" href="{{ roadmap.repository_url }}"><i class="fab fa-github" aria-hidden="true"></i> Source</a>
+    </div>
+  </div>
+  <aside class="tr-spec" aria-label="Target platform">
+    <p class="tr-spec__title"><span>spec</span><span>target platform</span></p>
+    <dl>
+      <div><dt>compute</dt><dd>Raspberry Pi 4B</dd></div>
+      <div><dt>mcu</dt><dd>STM32 F446RE</dd></div>
+      <div><dt>vision</dt><dd>IMX219 on pan-tilt</dd></div>
+      <div><dt>range</dt><dd>TF Mini LiDAR · ultrasonic</dd></div>
+      <div><dt>imu</dt><dd>ICM-20948, 9-axis</dd></div>
+      <div><dt>drive</dt><dd>4 × DC · encoders</dd></div>
+      <div><dt>stack</dt><dd>ROS 2 Jazzy · C++ · Python</dd></div>
+    </dl>
+  </aside>
+</header>
+
+<section id="roadmap" class="section" aria-labelledby="roadmap-title">
+  <div class="section-head tr-head">
+    <div>
+      <p class="eyebrow"><span class="idx">01</span> / Roadmap</p>
+      <h2 id="roadmap-title">From first motor to autonomy</h2>
+    </div>
+    <button type="button" class="tr-replay" hidden>↺ replay</button>
+  </div>
+
+  <div class="rm" data-current="{{ here_phase }}">
+    <span class="rm-progress" aria-hidden="true"></span>
+    <ol class="rm-list">
+    {% for phase in roadmap.phases %}
+      {% assign items = roadmap.milestones | where: 'phase', phase.id %}
+      {% assign done = items | where: 'status', 'completed' | size %}
+      {% if forloop.index < here_phase %}{% assign state = 'past' %}{% elsif forloop.index == here_phase %}{% assign state = 'current' %}{% else %}{% assign state = 'future' %}{% endif %}
+      <li class="rm-row rm-row--{{ state }}"{% if state == 'current' %} aria-current="step"{% endif %}>
+        <span class="rm-badge">0{{ forloop.index }}</span>
+        <div class="rm-card">
+          <div class="rm-pin" aria-hidden="true"><span class="rm-pin__drop"></span><span class="rm-pin__icon">{% include tishtar-icon.html id=phase.id %}</span></div>
+          <div class="rm-text">
+            <p class="rm-step">{% if state == 'current' %}<b>● now</b>{% elsif state == 'past' %}started{% else %}planned{% endif %}</p>
+            <h3>{{ phase.title }}</h3>
+            <p>{{ phase.description }}</p>
+            <p class="rm-ticks" title="{{ done }} of {{ items.size }} milestones completed"><span class="sr-only">{{ done }} of {{ items.size }} milestones completed</span>{% for m in items %}<i class="q q--{{ m.status }}" title="{{ m.title }}"></i>{% endfor %}<span aria-hidden="true">{{ done }}/{{ items.size }}</span></p>
+            {% if state == 'current' %}<p class="rm-focus">next → {{ roadmap.current_focus }}</p>{% endif %}
+          </div>
+        </div>
+      </li>
+    {% endfor %}
+    </ol>
+    <div class="rm-bot" aria-hidden="true">
+      <svg viewBox="-30 -22 60 44" focusable="false">
+        <g class="rm-bot__wheels"><rect x="-21" y="-21" width="15" height="9" rx="3"/><rect x="7" y="-21" width="15" height="9" rx="3"/><rect x="-21" y="12" width="15" height="9" rx="3"/><rect x="7" y="12" width="15" height="9" rx="3"/></g>
+        <rect class="rm-bot__body" x="-23" y="-14" width="44" height="28" rx="7"/>
+        <path class="rm-bot__vent" d="M-16-6h10M-16 0h10M-16 6h10"/>
+        <circle class="rm-bot__mount" cx="9" cy="0" r="8"/>
+        <rect class="rm-bot__cam" x="10" y="-5" width="13" height="10" rx="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <p class="tr-note">
+    <span class="tr-legend"><i class="q q--completed"></i>done <i class="q q--in_progress"></i>in progress <i class="q q--planned"></i>planned</span>
+    <span>One mark per milestone. Status reviewed {{ roadmap.reviewed_on }}; bench results are self-reported. <a href="{{ roadmap.repository_url }}/issues">Issues ↗</a></span>
+  </p>
+</section>
+
+<section id="system" class="section" aria-labelledby="system-title">
+  <div class="section-head">
+    <p class="eyebrow"><span class="idx">02</span> / System</p>
+    <h2 id="system-title">Architecture</h2>
+    <p class="section-intro">High-level reasoning on the Raspberry Pi; real-time control on the STM32.</p>
+  </div>
+  {% include tishtar-system.html %}
+</section>
+
+<section id="log" class="section" aria-labelledby="log-title">
+  <div class="section-head">
+    <p class="eyebrow"><span class="idx">03</span> / Build log</p>
+    <h2 id="log-title">From the workbench</h2>
+  </div>
+  <figure class="term tr-log">
+    <div class="term__bar" aria-hidden="true"><i></i><i></i><i></i><span>tishtar@pi: ~</span></div>
+<pre class="term__body"><span class="p">$</span> tail -n {{ site.data.tishtar_journal.size }} ~/tishtar/build.log
+{% for entry in site.data.tishtar_journal %}{% assign href = entry.issue_url | default: entry.evidence_url %}<span class="c">[{% if entry.date %}{{ entry.date }}{% else %}··········{% endif %}]</span> <span class="k">{{ entry.id | append: '          ' | slice: 0, 10 }}</span> {% if href contains 'http' %}<a href="{{ href }}">{{ entry.log }}</a>{% else %}{{ entry.log }}{% endif %}
+{% endfor %}<span class="p">$</span> <span class="cursor" aria-hidden="true"></span></pre>
+  </figure>
+  <p class="tr-note"><span>Undated entries follow build order. Dates are added once verified.</span></p>
+</section>
+
+<section class="section tr-cta" aria-label="Follow the project">
+  <div>
+    <h2>Follow the build</h2>
+    <p>Code, issues and hardware notes are public.</p>
+  </div>
+  <a class="button button--primary" href="{{ roadmap.repository_url }}"><i class="fab fa-github" aria-hidden="true"></i> tishtar-robot</a>
+</section>
