@@ -94,6 +94,8 @@
       if (!document.getElementById(link.hash.slice(1))) return;
       event.preventDefault();
       event.stopPropagation();
+      var panel = link.closest("dialog");
+      if (panel && panel.open) panel.close("navigate");
       if (link.hash !== window.location.hash)
         window.history.pushState(null, "", link.hash);
       revealHash(true);
