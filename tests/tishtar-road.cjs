@@ -29,7 +29,7 @@ if (process.env.CHROME_PATH)
     }
     async function load(ctx) {
       const page = await ctx.newPage();
-      page.on("pageerror", (error) => errors.push(error.message));
+      page.on("pageerror", (error) => { errors.push(error.message); console.error(error.message); });
       const response = await page.goto(base + "/tishtar/");
       assert.equal(response.status(), 200);
       await page.locator(".tr-drive:not([hidden])").waitFor();
@@ -96,11 +96,20 @@ if (process.env.CHROME_PATH)
       (m) => m.id === data.road_current_milestone_id,
     ).road_position;
     assert.ok(Math.abs((await progress(page)) - initial) < 0.00001);
-    assert.equal(await page.locator(".tr-road-marker").count(), 40);
+    assert.equal(await page.locator(".tr-road-marker").count(), 7);
     assert.equal(
       await page.locator(".tr-road-completed path").count(),
       data.milestones.filter((m) => m.status === "completed").length,
     );
+    await page.locator(".tr-start").click();
+    assert.equal(await page.locator(".tr-robot").evaluate(el => el === document.activeElement), true);
+    await page.keyboard.press("w");
+    assert.ok((await progress(page)) > initial);
+    await page.keyboard.press("s");
+    assert.ok(Math.abs((await progress(page)) - initial) < 0.00001);
+    await page.locator('[data-drive="1"]').first().click();
+    assert.ok((await progress(page)) > initial);
+    await page.locator(".tr-return").click();
     await page.locator(".tr-robot").focus();
     await page.keyboard.press("Home");
     await page.locator(".tr-road-map").scrollIntoViewIfNeeded();
@@ -150,10 +159,7 @@ if (process.env.CHROME_PATH)
       "rotate(0 -15 -21)",
     );
     assert.equal(await page.locator("#tr-drive-data").textContent(), baseline);
-    assert.equal(
-      await page.locator(".tr-focus progress").getAttribute("value"),
-      "5",
-    );
+    assert.equal(await page.locator(".journey-stage").count(), 7);
 
     // Shift-click is an intentional full-path reposition, distinct from a drag.
     screen = await point(page, 0.813);
@@ -178,18 +184,18 @@ if (process.env.CHROME_PATH)
     await page.mouse.up();
     assert.equal(await page.locator("dialog").evaluate((el) => el.open), false);
 
-    await page.locator('.tr-road-marker[data-milestone="repository"]').click();
+    await page.locator('.tr-road-marker[data-milestone="foundation"]').click();
     assert.equal(await page.locator("dialog").evaluate((el) => el.open), true);
     assert.equal(
       await page.locator("#tr-panel-title").textContent(),
-      "Set up project repository",
+      "A first spark of movement",
     );
     assert.ok(await page.locator('dialog a[href$="/issues/1"]').count());
     await page.keyboard.press("Escape");
     assert.equal(await page.locator("dialog").evaluate((el) => el.open), false);
     assert.equal(
       await page
-        .locator('.tr-road-marker[data-milestone="repository"]')
+        .locator('.tr-road-marker[data-milestone="foundation"]')
         .evaluate((el) => el === document.activeElement),
       true,
     );
@@ -200,17 +206,8 @@ if (process.env.CHROME_PATH)
       true,
       "Robot click should explore",
     );
-    assert.ok(await page.locator('dialog a[href$="/issues/8"]').count());
-    assert.ok(await page.locator('dialog a[href$="/issues/6"]').count());
-    assert.ok(
-      await page.locator("dialog").getByText("From the build journal").count(),
-    );
-    await page.locator('dialog a[href="#builder-results"]').first().click();
-    assert.equal(await page.locator("dialog").evaluate((el) => el.open), false);
-    assert.equal(
-      await page.locator("#builder-results").getAttribute("open"),
-      "",
-    );
+    assert.ok(await page.locator('dialog a[href$="/issues/3"]').count());
+    await page.keyboard.press("Escape");
 
     await page.locator(".tr-return").click();
     await page.keyboard.press("ArrowRight");
@@ -315,7 +312,7 @@ if (process.env.CHROME_PATH)
       (before) => window.scrollY > before + 20,
       scrollBefore,
     );
-    await touch.locator('.tr-road-marker[data-milestone="goals"]').tap();
+    await touch.locator('.tr-road-marker[data-milestone="navigation"]').tap();
     assert.equal(await touch.locator("dialog").evaluate((el) => el.open), true);
     await touch.locator(".tr-panel-close").tap();
     const afterClose = await progress(touch);
@@ -358,9 +355,8 @@ if (process.env.CHROME_PATH)
     const fallback = await nojs.newPage();
     await fallback.goto(base + "/tishtar/");
     assert.equal(await fallback.locator(".tr-drive").isVisible(), false);
-    assert.equal(await fallback.locator(".tr-milestone").count(), 40);
-    await fallback.locator("#phase-navigation > summary").click();
-    assert.equal(await fallback.locator("#milestone-goals").isVisible(), true);
+    assert.equal(await fallback.locator(".journey-stage").count(), 7);
+    assert.equal(await fallback.locator("#milestone-navigation").isVisible(), true);
     assert.deepEqual(errors, []);
     console.log(
       "PASS: mouse + emulated touch through all bends; local branch constraint; tangent rotation; wheels; crossing detection; no drag modals; marker/robot clicks; evidence links; modal close/focus; keyboard; return; immutable statuses; touch scroll prevention and normal background scrolling; reduced motion; resize; no-JS fallback.",

@@ -1,4 +1,6 @@
 ---
+layout: project
+project_id: pointnet
 title: "Decoding PointNet: A Practical Guide to 3D Segmentation with Python and PyTorch"
 excerpt: "Get ready to explore the world of 3D segmentation as we take a journey through PointNet, a super cool way to understand 3D shapes. PointNet is like a smart tool for computers to look at 3D things, especially groups of points floating in space. It’s different from other methods because it works directly with these points, without forcing them into grids or pictures.<br/><img src='/images/3d-Seg.png'>"
 collection: portfolio

@@ -1,0 +1,6 @@
+{% assign stage_tasks = site.data.tishtar_roadmap.milestones | where: 'phase', include.id %}
+{% assign stage_done = stage_tasks | where: 'status', 'completed' | size %}
+{% assign stage_active = stage_tasks | where: 'status', 'in_progress' | size %}
+{% assign stage_blocked = stage_tasks | where: 'status', 'blocked' | size %}
+{% assign stage_status = 'planned' %}
+{% if stage_tasks.size > 0 and stage_done == stage_tasks.size %}{% assign stage_status = 'completed' %}{% elsif stage_done > 0 or stage_active > 0 %}{% assign stage_status = 'in_progress' %}{% elsif stage_blocked > 0 %}{% assign stage_status = 'blocked' %}{% endif %}

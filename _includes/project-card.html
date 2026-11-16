@@ -1,0 +1,10 @@
+{% assign project = include.project %}
+<article class="project-card {% if project.featured %}project-card-feature{% endif %}">
+  <div class="project-card-visual {% unless project.featured %}project-card-visual--contain{% endunless %} {% if project.visual == 'perception' %}project-card-visual--blue{% elsif project.visual == 'signals' %}project-card-visual--yellow{% endif %}">
+    {% if project.image %}<img src="{{ project.image | relative_url }}" alt="{{ project.image_alt }}" loading="lazy" width="640" height="360">
+    {% elsif project.visual == 'robot' %}{% include tishtar-miniature.svg %}
+    {% elsif project.visual == 'perception' %}<svg viewBox="0 0 240 160" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M120 130 30 30m90 100L80 20m40 110L160 20m-40 110 90-100M25 100a110 110 0 0 1 190 0"/><circle cx="120" cy="130" r="9"/><circle cx="80" cy="58" r="10"/><path d="M65 95V80a15 15 0 0 1 30 0v15"/><circle cx="170" cy="70" r="10"/><path d="M155 108V92a15 15 0 0 1 30 0v16"/></g></svg>
+    {% else %}<svg viewBox="0 0 240 160" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2"><path d="M20 60h30l10-22 15 45 15-30 15 15 20-26 18 25h77M20 110h25l15-12 15 18 20-27 15 40 15-28 20 10h75"/><path d="M20 135h200" stroke-dasharray="3 6" opacity=".4"/></g></svg>{% endif %}
+  </div>
+  <div class="project-card-body"><p class="eyebrow">{{ project.category }}</p><h3><a href="{{ project.url | relative_url }}">{{ project.title }}</a></h3><p>{{ project.summary }}</p><ul class="tags" aria-label="{{ project.title }} technologies">{% for tag in project.technologies %}<li>{{ tag }}</li>{% endfor %}</ul><a class="project-card-more" href="{{ project.url | relative_url }}">{% if project.id == 'tishtar' %}Drive the demo &amp; follow the build{% else %}Explore the project{% endif %} <span aria-hidden="true">↗</span></a></div>
+</article>

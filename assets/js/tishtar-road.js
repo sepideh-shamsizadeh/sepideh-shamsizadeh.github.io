@@ -20,7 +20,7 @@
   var current = data.milestones.find(function (m) {
     return m.id === data.road_current_milestone_id;
   });
-  if (!current || current.status !== "completed") return;
+  if (!current || !current.verified_checkpoint) return;
   var stops = data.milestones
     .map(function (milestone, index) {
       var progress = Number(milestone.road_position);
@@ -113,8 +113,8 @@
   }
   function place(element, at) {
     var point = path.getPointAtLength(at);
-    element.style.left = (point.x / 760) * 100 + "%";
-    element.style.top = (point.y / 1220) * 100 + "%";
+    element.style.left = (point.x / svg.viewBox.baseVal.width) * 100 + "%";
+    element.style.top = (point.y / svg.viewBox.baseVal.height) * 100 + "%";
   }
   function statusFor(milestone) {
     return data.statuses.find(function (s) {
@@ -143,7 +143,7 @@
     });
     var phaseIndex = data.phases.indexOf(phase) + 1;
     var status = statusFor(stop.milestone);
-    mission.textContent = "Mission " + phaseIndex + " of " + data.phases.length;
+    mission.textContent = "Stage " + phaseIndex + " of " + data.phases.length;
     root.querySelector(".tr-drive-phase").textContent = phase.title;
     title.textContent = stop.milestone.title;
     description.textContent = stop.milestone.description;
@@ -259,23 +259,10 @@
       root.querySelector(".tr-road-completed").appendChild(segment);
     }
   });
-  // Mission labels occupy the clear spaces between the road's bends.
-  data.phases.forEach(function (phase, index) {
-    var first = stops.find(function (stop) {
-      return stop.milestone.phase === phase.id;
-    });
-    var point = path.getPointAtLength(first.progress * total);
-    var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", 380);
-    label.setAttribute("y", Math.max(110, point.y - 45));
-    label.setAttribute("text-anchor", "middle");
-    label.textContent = "0" + (index + 1) + " / " + phase.title;
-    root.querySelector(".tr-road-mission-labels").appendChild(label);
-  });
   root.querySelector(".tr-drive-current").textContent =
     "Current verified checkpoint: " +
-    current.title +
-    ". Builder-confirmed bench result; test date not recorded.";
+    (data.checkpoint_title || current.title) +
+    ". Builder-confirmed bench result; the wider stage remains in progress.";
 
   function cloneContent(source) {
     var clone = source.cloneNode(true);
@@ -313,7 +300,7 @@
       journalTitle.textContent = "From the build journal";
       content.appendChild(journalTitle);
       content.appendChild(cloneContent(journal));
-    } else if (!stop.milestone.media_url) {
+    } else if (!source && !stop.milestone.media_url) {
       var missing = document.createElement("p");
       missing.className = "tr-media-placeholder";
       missing.textContent =
@@ -418,7 +405,18 @@
     if (!suppressClick || event.detail === 0) openPanel(activeStop, robot);
     suppressClick = false;
   });
+  root.querySelector(".tr-start").addEventListener("click", function () {
+    robot.focus({ preventScroll: true });
+    robot.scrollIntoView({ block: "nearest", behavior: "instant" });
+  });
+  root.querySelectorAll("[data-drive]").forEach(function (control) {
+    control.addEventListener("click", function () {
+      drive(length + Number(control.dataset.drive) * total * 0.012, true);
+    });
+  });
   robot.addEventListener("keydown", function (event) {
+    var keys = { w: "ArrowRight", d: "ArrowRight", s: "ArrowLeft", a: "ArrowLeft" };
+    var key = keys[event.key.toLowerCase()] || event.key;
     if (pointer) return;
     var step = total * (event.shiftKey ? 0.02 : 0.004);
     if (
@@ -429,17 +427,17 @@
         "ArrowUp",
         "Home",
         "End",
-      ].indexOf(event.key) === -1
+      ].indexOf(key) === -1
     )
       return;
     event.preventDefault();
     var at =
-      event.key === "Home"
+      key === "Home"
         ? 0
-        : event.key === "End"
+        : key === "End"
           ? total
           : length +
-            (event.key === "ArrowLeft" || event.key === "ArrowUp"
+            (key === "ArrowLeft" || key === "ArrowDown"
               ? -step
               : step);
     drive(at, true);
@@ -451,6 +449,8 @@
     var point = svgPoint(event);
     if (point) drive(nearestPoint(point, null), true);
   });
+  var fallback = document.querySelector(".tr-drive-fallback");
+  if (fallback) fallback.hidden = true;
   root.hidden = false;
   drive(length, false);
 })();

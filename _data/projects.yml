@@ -1,0 +1,48 @@
+- id: tishtar
+  title: TISHTAR
+  category: Robotics · In development
+  summary: Building a four-wheeled robot from the first motor movement toward autonomous navigation.
+  url: /tishtar/
+  visual: robot
+  featured: true
+  technologies: [ROS 2, Raspberry Pi, STM32, Python, C++]
+  github_url: https://github.com/sepideh-shamsizadeh/tishtar-robot
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+- id: sfm
+  title: Structure from Motion
+  category: Computer vision · 3D reconstruction
+  summary: Reconstructing a scene in 3D from a collection of ordinary photographs.
+  url: /portfolio/portfolio-1/
+  image: /images/feature_extraction.png
+  image_alt: Feature extraction visualization from the Structure from Motion project.
+  technologies: [C++17, OpenCV, SIFT, Ceres Solver]
+  problem: Multiple photographs show different views of the same scene. The challenge is to recover the camera geometry and the scene’s three-dimensional structure.
+  approach: A C++ pipeline combines SIFT feature matching, multi-view geometry and bundle adjustment with Ceres Solver.
+  outcomes: [A working pipeline connecting feature extraction to 3D reconstruction., A practical exploration of multi-view geometry and optimization.]
+  article_url: https://medium.com/@sepideh.92sh/unveiling-the-magic-of-3d-reconstruction-a-journey-through-structure-from-motion-sfm-in-c-d66bc1d01a96
+- id: pointnet
+  title: PointNet · 3D Segmentation
+  category: Machine learning · 3D perception
+  summary: Learning directly from LiDAR point clouds to understand traversable space.
+  url: /portfolio/portfolio-2/
+  image: /images/3d-Seg.png
+  image_alt: Point cloud segmentation visualization from the PointNet project.
+  technologies: [Python, PyTorch, PointNet, SemanticKITTI]
+  problem: A robot needs to reason about the space around it. Raw LiDAR points must be turned into useful semantic information without imposing an artificial image grid.
+  approach: PointNet processes unordered 3D points directly. This project applies the architecture to SemanticKITTI point clouds and traversability segmentation.
+  outcomes: [96% accuracy reported for traversability classification in this project., A Python and PyTorch implementation exploring point-based 3D learning.]
+  article_url: https://medium.com/@sepideh.92sh/decoding-pointnet-a-practical-guide-to-3d-segmentation-with-python-and-pytorch-7a037fecb8a7
+- id: pannote
+  title: PanNote
+  category: Research · ICRA 2024
+  summary: Automated panoramic annotation of people positions for mobile robot perception.
+  url: /story/#research--publications
+  visual: perception
+  technologies: [Robot perception, Camera–LiDAR, Annotation]
+- id: sensor-learning
+  title: Multimodal Sensor Learning
+  category: Applied research · ZHAW
+  summary: Self-supervised IMU and GNSS representations for animal-behaviour recognition.
+  url: /story/#professional-experience
+  visual: signals
+  technologies: [Self-supervised learning, IMU, GNSS]

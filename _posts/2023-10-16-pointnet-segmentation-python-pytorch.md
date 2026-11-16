@@ -1,4 +1,6 @@
 ---
+layout: project
+project_id: pointnet
 title: "Decoding PointNet: A Practical Guide to 3D Segmentation with Python and PyTorch"
 date: 2023-10-16
 excerpt: "A practical guide to 3D point cloud segmentation with PointNet, Python, and PyTorch. This tutorial moves from the architecture to implementation, exploring how to work with unordered 3D points for segmentation."

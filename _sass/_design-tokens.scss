@@ -1,0 +1,34 @@
+/* Shared design tokens. Layouts and feature styles consume these values. */
+:root {
+  color-scheme: light;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, monospace;
+  --color-bg: #faf8f3;
+  --color-surface: #ffffff;
+  --color-ink: #252c2d;
+  --color-muted: #586361;
+  --color-line: #d9dfd9;
+  --color-link: #176e63;
+  --color-action: #b94430;
+  --color-action-text: #ffffff;
+  --color-coral: #eb8064;
+  --color-mint: #e8f2ec;
+  --color-yellow: #f9edc5;
+  --color-blue: #e8eff7;
+  --color-amber: #8c5c17;
+  --color-danger: #ad3549;
+  --color-trail: #147b96;
+  --radius-sm: 6px;
+  --radius-card: 14px;
+  --radius-lg: 24px;
+  --space-1: .5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 3rem;
+  --space-6: 5rem;
+  --site-width: 1120px;
+  --reading-width: 740px;
+  --gutter: clamp(20px, 4vw, 48px);
+  --shadow-soft: 0 12px 35px #252c2d08;
+}

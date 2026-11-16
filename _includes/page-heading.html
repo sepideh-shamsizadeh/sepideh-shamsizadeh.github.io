@@ -1,0 +1,7 @@
+<header class="page-heading {% if include.compact %}page-heading--compact{% endif %}">
+  <p class="eyebrow">{{ include.eyebrow | default: page.collection | default: 'A little curiosity, put to work' }}</p>
+  <h1>{{ include.title | default: page.title }}</h1>
+  {% if include.description %}<p class="page-intro">{{ include.description }}</p>{% elsif page.description %}<p class="page-intro">{{ page.description }}</p>{% endif %}
+  {% if page.date %}<p class="page-meta"><time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: '%d %B %Y' }}</time>{% if page.read_time %} · {% include read-time.html %}{% endif %}</p>{% endif %}
+  {% if page.venue %}<p class="page-meta">{{ page.type | default: page.talk_type }} · {{ page.venue }}{% if page.location %} · {{ page.location }}{% endif %}</p>{% endif %}
+</header>

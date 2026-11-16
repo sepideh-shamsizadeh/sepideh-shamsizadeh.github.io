@@ -1,138 +1,20 @@
 ---
 permalink: /
-title: "About Me"
-excerpt: "Robotics & AI Engineer | Robotic Perception | Machine Learning | 3D Vision & Sensor Fusion"
+title: "Sepideh Shamsizadeh · Robotics & AI Engineer"
+excerpt: "Robotics, computer vision and machine learning. I connect research with hands-on engineering to build intelligent systems that work in the real world."
 layout: onepager
 author_profile: false
 redirect_from:
   - /about/
   - /about.html
 ---
-
 {% include base_path %}
-
-<div class="op-card">
-
-<aside class="op-side">
-  <div class="op-photo">
-    <img src="{{ base_path }}/images/photo_2026-10-27_11-11-19.jpg" alt="Portrait of Sepideh Shamsizadeh">
-  </div>
-
-  <section class="op-builder">
-    <h3>The Builder</h3>
-    <p>Driven to discover.<br>Determined to build.</p>
-  </section>
-
-  <section>
-    <h3>Core Expertise</h3>
-    <ul>
-      <li>Robotic perception</li>
-      <li>Machine learning</li>
-      <li>3D vision &amp; sensor fusion</li>
-      <li>Real-time systems</li>
-    </ul>
-  </section>
-
-  <section>
-    <h3>Engineering Toolkit</h3>
-    <div class="op-tags">
-      <span>Python</span><span>C++17</span><span>PyTorch</span><span>OpenCV</span>
-      <span>ROS / ROS 2</span><span>Linux</span><span>Docker</span><span>Git</span>
-      <span>CI/CD</span><span>SIFT</span><span>Ceres</span><span>PointNet</span>
-      <span>SLAM</span><span>Point clouds</span>
-    </div>
-  </section>
-
-  <section class="op-edu">
-    <h3>Education</h3>
-    <ul>
-      <li><strong>MSc · AI &amp; Robotics</strong><span>University of Padova</span></li>
-      <li><strong>MSc · Health IT</strong><span>University of Tehran</span></li>
-      <li><strong>BSc · Information Technology</strong><span>Kermanshah University of Technology</span></li>
-    </ul>
-  </section>
-
-  <div class="op-place">
-    <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Zurich, Switzerland</p>
-    <p><i class="fas fa-id-card" aria-hidden="true"></i> B work permit</p>
-  </div>
-</aside>
-
-<div class="op-body">
-  <h1 class="op-name">Sepideh Shamsizadeh</h1>
-  <p class="op-role">Robotics &amp; AI Engineer</p>
-  <p class="op-tagline">Curious enough to imagine. Bold enough to build.</p>
-
-  <div class="op-links">
-    <a class="op-primary" href="mailto:sepideh.92sh@gmail.com"><i class="fas fa-envelope" aria-hidden="true"></i> Get in touch</a>
-    <a href="{{ base_path }}/story/"><i class="fas fa-book-open" aria-hidden="true"></i> My story</a>
-    <a href="{{ base_path }}/files/Sepideh-Shamsizadeh-CV.pdf"><i class="fas fa-file-pdf" aria-hidden="true"></i> CV</a>
-    <a href="https://github.com/sepideh-shamsizadeh"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a>
-    <a href="https://www.linkedin.com/in/sepideh-shamsizadeh"><i class="fab fa-linkedin" aria-hidden="true"></i> LinkedIn</a>
-    <a href="https://scholar.google.com/citations?hl=en&amp;user=Ksh-JpQAAAAJ"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Scholar</a>
-  </div>
-
-  <h2>About Me</h2>
-  <p class="op-about">I connect research with hands-on engineering to turn challenging ideas into working intelligent systems — from sensing and model development to deployment. I thrive on curiosity, technical ownership and meaningful impact. <a class="op-inline" href="{{ base_path }}/story/">Read my full story →</a></p>
-
-  <h2>Selected Engineering Impact</h2>
-  <div class="op-impact">
-    <div><strong>76% → 96%</strong><span>Clinical coding accuracy</span></div>
-    <div><strong>~0.15%</strong><span>Camera–LiDAR calibration error</span></div>
-    <div><strong>ICRA 2024</strong><span>Robotics publication</span></div>
-  </div>
-
-  <h2>Selected Experience</h2>
-  <ul class="op-timeline">
-    <li>
-      <h4><small>2024–2026</small> ZHAW · Zurich University of Applied Sciences</h4>
-      <p>Multimodal self-supervised learning, edge-cloud pipelines and resource-aware deployment.</p>
-    </li>
-    <li>
-      <h4><small>2023–2024</small> Eurapco</h4>
-      <p>Coordinated a generative-AI and knowledge-graph prototype for insurance.</p>
-    </li>
-    <li>
-      <h4><small>2022–2023</small> University of Padova</h4>
-      <p>Real-time YOLOv7 + LiDAR perception and camera-LiDAR calibration; ICRA 2024 co-author.</p>
-    </li>
-    <li>
-      <h4><small>2017–2019</small> Kavosh</h4>
-      <p>Led ML R&amp;D for a clinical coding assistant, increasing accuracy from 76% to 96%.</p>
-    </li>
-  </ul>
-
-  <h2>Selected Projects</h2>
-  <div class="op-projects">
-    <a class="op-project" href="{{ base_path }}{% post_url 2023-10-06-3d-reconstruction-structure-from-motion %}">
-      <h4>Structure from Motion</h4>
-      <p>C++ 3D reconstruction pipeline using SIFT matching, multi-view geometry, bundle adjustment and Ceres Solver.</p>
-      <span class="op-more">Read the write-up →</span>
-    </a>
-    <a class="op-project" href="{{ base_path }}{% post_url 2023-10-16-pointnet-segmentation-python-pytorch %}">
-      <h4>PointNet · 3D Segmentation</h4>
-      <p>Segmented SemanticKITTI LiDAR point clouds into traversability classes, reaching 96% accuracy.</p>
-      <span class="op-more">Read the write-up →</span>
-    </a>
-    <div class="op-project">
-      <h4>PanNote · Robot Perception</h4>
-      <p>Automated panoramic annotation of people positions for mobile robots; published at ICRA 2024.</p>
-    </div>
-    <div class="op-project">
-      <h4>Multimodal Sensor Learning</h4>
-      <p>Self-supervised IMU + GNSS representations for animal-behaviour recognition.</p>
-    </div>
-    <a class="op-project op-project--wide" href="{{ base_path }}/tishtar/">
-      <h4>TISHTAR · Personal Robot</h4>
-      <p>Designing and building a four-wheeled autonomous mobile robot from the ground up — Raspberry Pi and STM32, encoders, camera, LiDAR, IMU and ROS 2 — for SLAM, localization and path planning.</p>
-      <span class="op-more">Follow the build log →</span>
-    </a>
-  </div>
-
-  <div class="op-cta">
-    <h3>Let's turn big ideas into working systems.</h3>
-    <p><a href="mailto:sepideh.92sh@gmail.com">sepideh.92sh@gmail.com</a> &nbsp;|&nbsp; <a href="https://github.com/sepideh-shamsizadeh">github.com/sepideh-shamsizadeh</a></p>
-  </div>
-</div>
-
-</div>
+<section class="home-hero" aria-labelledby="home-title">
+  <div><p class="eyebrow">Robotics &amp; AI Engineer · Zurich</p><h1 id="home-title">Curious minds.<br><span>Working systems.</span></h1><p class="page-intro">I’m Sepideh. I connect research with hands-on engineering to build intelligent systems — from robotic perception and 3D vision to machine learning that works in the real world.</p><div class="actions"><a class="button" href="{{ base_path }}/portfolio/">Explore my work <span aria-hidden="true">↗</span></a><a class="button button--quiet" href="mailto:sepideh.92sh@gmail.com">Get in touch</a></div><p class="fine">Curious enough to imagine. Bold enough to build.</p></div>
+  <figure class="home-portrait"><img src="{{ base_path }}/images/photo_2026-10-27_11-11-19.jpg" alt="Sepideh Shamsizadeh" width="400" height="500"><figcaption>Driven to discover. Determined to build.</figcaption></figure>
+</section>
+<div class="impact-strip" aria-label="Selected engineering impact"><div><strong>76% → 96%</strong><span>Clinical coding accuracy</span></div><div><strong>~0.15%</strong><span>Camera–LiDAR calibration error</span></div><div><strong>ICRA 2024</strong><span>Robotics publication</span></div></div>
+<section aria-labelledby="work-title"><div class="section-heading"><div><p class="eyebrow">Selected work</p><h2 id="work-title">A little theory. A lot of building.</h2></div><a href="{{ base_path }}/portfolio/">All projects ↗</a></div><div class="card-grid">{% for project in site.data.projects %}{% include project-card.html project=project %}{% endfor %}</div></section>
+<section class="section about-split" aria-labelledby="about-title"><div><p class="eyebrow">The person behind the projects</p><h2 id="about-title">Research meets real-world engineering.</h2><p>I work across sensing, model development and deployment. My interests connect robotic perception, machine learning, 3D vision and sensor fusion with the challenge of making complete systems work.</p><p>I thrive on curiosity, technical ownership and meaningful impact.</p><div class="actions"><a class="button button--quiet" href="{{ base_path }}/story/">Read my story ↗</a><a href="{{ base_path }}/files/Sepideh-Shamsizadeh-CV.pdf">Download CV</a></div><details class="disclosure"><summary>Toolkit &amp; education</summary><h3>Engineering toolkit</h3><ul class="tags"><li>Python</li><li>C++17</li><li>PyTorch</li><li>OpenCV</li><li>ROS / ROS 2</li><li>Linux</li><li>Docker</li><li>Git</li><li>CI/CD</li><li>SIFT</li><li>Ceres</li><li>PointNet</li><li>SLAM</li><li>Point clouds</li><li>Real-time systems</li></ul><h3>Education</h3><p>MSc · AI &amp; Robotics — University of Padova<br>MSc · Health IT — University of Tehran<br>BSc · Information Technology — Kermanshah University of Technology</p><p class="fine">Zurich, Switzerland · B work permit</p></details></div>
+<div><p class="eyebrow">Where I’ve been building</p><ul class="experience-list"><li><time>2024–2026</time><strong>ZHAW · Zurich University of Applied Sciences</strong><p>Multimodal self-supervised learning, edge-cloud pipelines and resource-aware deployment.</p></li><li><time>2023–2024</time><strong>Eurapco</strong><p>Coordinated a generative-AI and knowledge-graph prototype for insurance.</p></li><li><time>2022–2023</time><strong>University of Padova</strong><p>Real-time YOLOv7 + LiDAR perception and camera–LiDAR calibration; ICRA 2024 co-author.</p></li><li><time>2017–2019</time><strong>Kavosh</strong><p>Led ML R&amp;D for a clinical coding assistant, increasing accuracy from 76% to 96%.</p></li></ul></div></section>
+<section class="contact-band"><p class="eyebrow">Have an interesting problem?</p><h2>Let’s turn big ideas into working systems.</h2><p>I’m interested in the space where AI meets the physical world.</p><div class="actions"><a class="button" href="mailto:sepideh.92sh@gmail.com">Say hello ↗</a><a href="https://github.com/sepideh-shamsizadeh">GitHub</a><a href="https://www.linkedin.com/in/sepideh-shamsizadeh">LinkedIn</a><a href="{{ site.author.googlescholar }}">Google Scholar</a></div></section>

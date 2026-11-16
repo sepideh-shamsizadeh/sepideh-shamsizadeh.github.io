@@ -1,0 +1,3 @@
+{% if project.image %}<img class="project-visual" src="{{ project.image | relative_url }}" alt="{{ project.image_alt }}" width="1000" height="540">{% endif %}
+<div class="project-overview"><section><p class="eyebrow">The idea &amp; the implementation</p><h2>The problem. My approach.</h2><p>{{ project.problem }}</p><p>{{ project.approach }}</p></section><section class="project-outcome"><p class="eyebrow">What came out of it</p><h2>Key outcomes</h2><ul>{% for outcome in project.outcomes %}<li>{{ outcome }}</li>{% endfor %}</ul></section></div>
+{% if project.article_url %}<p><a class="button" href="{{ project.article_url }}">Read the full technical article ↗</a></p>{% endif %}

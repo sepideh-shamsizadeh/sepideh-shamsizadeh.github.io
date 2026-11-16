@@ -1,4 +1,6 @@
 ---
+layout: project
+project_id: sfm
 title: "Structure from Motion (SfM) in C++"
 excerpt: "Let’s explore Structure from Motion by figuring out the 3D layout of a small scene through a series of smartphone images. Choose nearby objects and take pictures with some overlap in what your camera captures. For accurate results, use a checkerboard to calibrate your camera — take a few shots from different angles. This calibration step provides vital info for the entire process.<br/><img src='/images/feature_extraction.png'>"
 collection: portfolio

@@ -1,7 +1,7 @@
 ---
 permalink: /story/
 title: "My Story"
-excerpt: "The longer version: how I got into AI and robotics, what I've worked on, and where I'm heading."
+description: "The longer version: how I got into AI and robotics, what I've worked on, and where I'm heading."
 author_profile: true
 ---
 
