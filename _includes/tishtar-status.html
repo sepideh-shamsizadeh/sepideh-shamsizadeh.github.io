@@ -1,0 +1,1 @@
+{% for state in site.data.tishtar_roadmap.statuses %}{% if state.id == include.status %}<span class="tr-status tr-status--{{ state.id }}"><span aria-hidden="true">{{ state.icon }}</span> {{ state.label }}</span>{% endif %}{% endfor %}

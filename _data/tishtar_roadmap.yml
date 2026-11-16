@@ -1,0 +1,546 @@
+---
+repository_url: https://github.com/sepideh-shamsizadeh/tishtar-robot
+documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+project_board_url:
+reviewed_on: '2026-11-16'
+statuses:
+- id: completed
+  label: Completed
+  icon: "✓"
+- id: in_progress
+  label: In progress
+  icon: "◐"
+- id: planned
+  label: Planned
+  icon: "○"
+- id: blocked
+  label: Blocked
+  icon: "!"
+phases:
+- id: foundation
+  title: Foundation & Electronics
+  description: From a first motor movement to a reliable electrical foundation.
+- id: camera
+  title: Camera & Pan-Tilt
+  description: Give the robot a view of the world, then learn to direct its gaze.
+- id: motion
+  title: Robot Motion & Control
+  description: Connect high-level intent to measured, controlled wheel motion.
+- id: perception
+  title: Perception & Sensor Integration
+  description: Turn individual measurements into useful observations.
+- id: mapping
+  title: Mapping & Localization
+  description: Build a consistent picture of where the robot is.
+- id: navigation
+  title: Autonomous Navigation
+  description: Move from controlled motion to purposeful navigation.
+- id: intelligence
+  title: Intelligent Behaviors & Experiments
+  description: Research directions beyond the first autonomous journey.
+milestones:
+- id: repository
+  title: Set up project repository
+  description: 'Repository structure is published; GitHub issue #1 is closed.'
+  phase: foundation
+  status: completed
+  date_completed: '2026-10-27'
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/1
+  documentation_url:
+  evidence_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/1
+  review_required: false
+  evidence_source: Repository / issue
+- id: environments
+  title: Establish Raspberry Pi and STM32 development environments
+  description: Planned work; implementation has not been verified.
+  phase: foundation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: motor-pwm
+  title: Test STM32 motor PWM control
+  description: STM32 motor control was tested, as reported by the builder. Four-wheel
+    operation is not yet verified.
+  phase: foundation
+  status: completed
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url: "#builder-results"
+  review_required: true
+  evidence_source: Builder-reported bench result
+- id: four-motors
+  title: Integrate four motors and motor drivers
+  description: Planned work; implementation has not been verified.
+  phase: foundation
+  status: planned
+  date_completed:
+  dependencies:
+  - motor-pwm
+  - power
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: encoders
+  title: Integrate wheel encoders
+  description: Planned work; implementation has not been verified.
+  phase: foundation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: power
+  title: Establish safe power distribution
+  description: Planned work; implementation has not been verified.
+  phase: foundation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: assembly
+  title: Assemble two-axis camera mechanism
+  description: 'Issue #4 confirms assembly and camera mounting; assembly photographs
+    are still outstanding.'
+  phase: camera
+  status: in_progress
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/4
+  documentation_url:
+  evidence_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/4
+  review_required: false
+  evidence_source: Repository / issue
+- id: camera-capture
+  title: Install Raspberry Pi Camera v2.1 and verify capture
+  description: Camera image capture verified by the builder. This does not establish
+    ROS 2 image publication.
+  phase: camera
+  status: completed
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url: "#builder-results"
+  review_required: true
+  evidence_source: Builder-reported bench result
+- id: pca9685
+  title: Configure PCA9685 controller
+  description: 'Builder reports I2C detection at 0x40. Issue #5 still requires power
+    verification and setup documentation.'
+  phase: camera
+  status: in_progress
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/5
+  documentation_url:
+  evidence_url: "#builder-results"
+  review_required: true
+  evidence_source: GitHub issue + builder report
+- id: pan-tilt
+  title: Test independent pan and tilt control
+  description: 'Builder reports pan on channel 1 and tilt on channel 0, with independent
+    servo control tested. Wider issue #6 remains open.'
+  phase: camera
+  status: completed
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/6
+  documentation_url:
+  evidence_url: "#builder-results"
+  review_required: true
+  evidence_source: Builder-reported bench result
+- id: keyboard
+  title: Implement keyboard-based servo movement
+  description: 'Python incremental keyboard servo control tested by the builder. Issue
+    #8 concerns the separate, planned ROS 2 teleoperation extension.'
+  phase: camera
+  status: completed
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/8
+  documentation_url:
+  evidence_url: "#builder-results"
+  review_required: true
+  evidence_source: Builder-reported bench result
+- id: limits
+  title: Calibrate mechanical limits
+  description: Safe angle and pulse-width calibration is not yet verified.
+  phase: camera
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/6
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Repository / issue
+- id: pan-ros
+  title: Integrate pan-tilt control into ROS 2
+  description: 'ROS 2 package, command interfaces and end-to-end testing remain planned
+    in issue #7.'
+  phase: camera
+  status: planned
+  date_completed:
+  dependencies:
+  - pan-tilt
+  - limits
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/7
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Repository / issue
+- id: interfaces
+  title: Define motion-control interfaces
+  description: Architecture notes describe the control hierarchy; serial message format
+    and timing remain to be defined.
+  phase: motion
+  status: in_progress
+  date_completed:
+  dependencies: []
+  github_issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/2
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: false
+  evidence_source: Repository / issue
+- id: stm-ros
+  title: Connect ROS 2 to STM32
+  description: Planned work; implementation has not been verified.
+  phase: motion
+  status: planned
+  date_completed:
+  dependencies:
+  - interfaces
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: velocity
+  title: Implement velocity commands
+  description: Planned work; implementation has not been verified.
+  phase: motion
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: encoder-feedback
+  title: Integrate encoder feedback
+  description: Planned work; implementation has not been verified.
+  phase: motion
+  status: planned
+  date_completed:
+  dependencies:
+  - encoders
+  - stm-ros
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: odometry
+  title: Implement wheel odometry
+  description: Planned work; implementation has not been verified.
+  phase: motion
+  status: planned
+  date_completed:
+  dependencies:
+  - encoder-feedback
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: closed-loop
+  title: Implement closed-loop speed control
+  description: Planned work; implementation has not been verified.
+  phase: motion
+  status: planned
+  date_completed:
+  dependencies:
+  - encoder-feedback
+  - velocity
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: lidar
+  title: Integrate TF Mini LiDAR
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: imu
+  title: Integrate ICM-20948 IMU
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: ultrasonic
+  title: Integrate ultrasonic sensors
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: camera-ros
+  title: Publish camera images using ROS 2
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: detection
+  title: Implement object detection
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: fusion
+  title: Implement sensor calibration and fusion
+  description: Planned work; implementation has not been verified.
+  phase: perception
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: tf
+  title: Implement coordinate frames and TF transforms
+  description: Planned work; implementation has not been verified.
+  phase: mapping
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: pose
+  title: Estimate robot pose
+  description: Planned work; implementation has not been verified.
+  phase: mapping
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: slam
+  title: Develop mapping or SLAM
+  description: Planned work; implementation has not been verified.
+  phase: mapping
+  status: planned
+  date_completed:
+  dependencies:
+  - tf
+  - odometry
+  github_issue_url:
+  documentation_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/blob/main/docs/architecture.md
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: odom-imu
+  title: Fuse odometry and IMU
+  description: Planned work; implementation has not been verified.
+  phase: mapping
+  status: planned
+  date_completed:
+  dependencies:
+  - odometry
+  - imu
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: localization-test
+  title: Validate localization accuracy
+  description: Planned work; implementation has not been verified.
+  phase: mapping
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: nav-stack
+  title: Integrate navigation stack
+  description: Planned work; implementation has not been verified.
+  phase: navigation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: planning
+  title: Implement path planning
+  description: Planned work; implementation has not been verified.
+  phase: navigation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: avoidance
+  title: Implement obstacle avoidance
+  description: Planned work; implementation has not been verified.
+  phase: navigation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: goals
+  title: Implement goal-based navigation
+  description: Planned work; implementation has not been verified.
+  phase: navigation
+  status: planned
+  date_completed:
+  dependencies:
+  - planning
+  - avoidance
+  - pose
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: navigation-test
+  title: Evaluate navigation in real environments
+  description: Planned work; implementation has not been verified.
+  phase: navigation
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: active-perception
+  title: Active perception
+  description: Planned work; implementation has not been verified.
+  phase: intelligence
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: semantics
+  title: Semantic environment understanding
+  description: Planned work; implementation has not been verified.
+  phase: intelligence
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: exploration
+  title: Autonomous exploration
+  description: Planned work; implementation has not been verified.
+  phase: intelligence
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: learning
+  title: Learning-based decision making
+  description: Planned work; implementation has not been verified.
+  phase: intelligence
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion
+- id: world-model
+  title: Experimental world-model-based behaviors
+  description: Planned work; implementation has not been verified.
+  phase: intelligence
+  status: planned
+  date_completed:
+  dependencies: []
+  github_issue_url:
+  documentation_url:
+  evidence_url:
+  review_required: true
+  evidence_source: Planning suggestion

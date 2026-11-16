@@ -1,0 +1,53 @@
+# Keep entries in engineering sequence. Use date: only for verified event dates.
+- id: repository
+  date: '2026-10-27'
+  title: A home for the robot
+  challenge: Organize firmware, ROS 2 packages, hardware notes and experiments in one place.
+  tools: Git · GitHub
+  summary: The project repository and its initial directory structure were published.
+  result: Repository setup issue closed on 27 October 2026.
+  evidence_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/1
+  next: Keep implementation notes and evidence alongside the code.
+- id: motor
+  title: The first motor movement
+  challenge: Establish a first low-level motor-control test before scaling up the drivetrain.
+  tools: STM32 NUCLEO-F446RE · PWM
+  summary: STM32 motor control was tested, as reported by the builder.
+  result: A bench motor-control result; four-wheel integration and closed-loop control remain unverified.
+  evidence_url: '#builder-results'
+  next: Publish firmware and test conditions, then validate all four motors.
+- id: camera
+  title: A first view of the world
+  challenge: Verify image capture before adding perception or ROS 2 image transport.
+  tools: Raspberry Pi · Camera v2.1 / IMX219
+  summary: Camera image capture was verified by the builder.
+  result: Image capture works at the bench-test level. ROS 2 publication is still planned.
+  evidence_url: '#builder-results'
+  documentation_url: https://medium.com/@sepideh.92sh/setup-and-troubleshooting-of-raspberry-pi-camera-module-v2-1-imx219-on-ubuntu-24-04-lts-fb518f4576c0
+  next: Record a sample image and document the tested configuration.
+- id: assembly
+  title: Building a movable gaze
+  challenge: Assemble the two-axis mechanism and mount the camera without obstructing motion.
+  tools: Camera pan-tilt mechanism · Raspberry Pi Camera v2.1
+  summary: Issue 4 records component inspection, mechanical assembly and camera mounting as checked tasks.
+  result: Assembly is documented in the checklist; the photographs required by the issue are still missing.
+  evidence_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/4
+  next: Add assembly photographs and confirm the installed mechanical limits.
+- id: controller
+  title: Finding the servo controller
+  challenge: Establish communication with the PCA9685 before commanding movement.
+  tools: Raspberry Pi · I2C · PCA9685
+  summary: The builder reports that the PCA9685 was detected at I2C address 0x40.
+  result: Controller discovery verified by the builder; issue 5 remains open for the wider setup and documentation.
+  evidence_url: '#builder-results'
+  issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/5
+  next: Publish setup notes, power verification and the diagnostic output.
+- id: servo
+  title: Directing the camera with Python
+  challenge: Move pan and tilt independently through incremental keyboard commands.
+  tools: Python · PCA9685 · Two servos
+  summary: Pan was configured on channel 1 and tilt on channel 0. Incremental keyboard control was tested by the builder.
+  result: Standalone servo control was tested; calibrated limits and ROS 2 integration remain separate milestones.
+  evidence_url: '#builder-results'
+  issue_url: https://github.com/sepideh-shamsizadeh/tishtar-robot/issues/6
+  next: Publish the script, calibrate limits and implement the ROS 2 interface.

@@ -122,7 +122,7 @@ redirect_from:
       <h4>Multimodal Sensor Learning</h4>
       <p>Self-supervised IMU + GNSS representations for animal-behaviour recognition.</p>
     </div>
-    <a class="op-project op-project--wide" href="{{ base_path }}{% post_url 2025-10-25-raspberry-pi-camera-ubuntu %}">
+    <a class="op-project op-project--wide" href="{{ base_path }}/tishtar/">
       <h4>TISHTAR · Personal Robot</h4>
       <p>Designing and building a four-wheeled autonomous mobile robot from the ground up — Raspberry Pi and STM32, encoders, camera, LiDAR, IMU and ROS 2 — for SLAM, localization and path planning.</p>
       <span class="op-more">Follow the build log →</span>
