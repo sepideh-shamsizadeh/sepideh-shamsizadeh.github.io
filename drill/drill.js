@@ -377,11 +377,11 @@ const WEEK=[
 {d:"Saturday",f:["sd","gen"],fl:"ML system design, generative AI",code:"mix",cl:"Mock: random language, timed, talk out loud"}
 ];
 const ROUTE=[
-{b:"Warm-up",s:"0–10 min · Again pile",m:10,c:"#e6261f"},
-{b:"Random cards",s:"10–45 min · about 20 cards",m:35,c:"#0a5cff"},
-{b:"Big question",s:"45–55 min · talk 8 min aloud",m:10,c:"#00a05a"},
-{b:"Notes",s:"55–60 min · 3 weak points",m:5,c:"#d99a00"},
-{b:"Coding",s:"45 min · one problem",m:45,c:"#1d3a8a"}
+{b:"Warm-up",s:"0–10 min · Again pile",m:10},
+{b:"Random cards",s:"10–45 min · about 20 cards",m:35},
+{b:"Big question",s:"45–55 min · talk 8 min aloud",m:10},
+{b:"Notes",s:"55–60 min · 3 weak points",m:5},
+{b:"Coding",s:"45 min · one problem",m:45}
 ];
 
 const $=id=>document.getElementById(id);
@@ -397,7 +397,7 @@ const dayNum=Math.floor((now-new Date(now.getTimezoneOffset()*60000*0))/864e5);
 $("today").textContent=day.d+" · focus: "+day.fl+" · coding: "+day.cl;
 
 // route
-const drawRoute=act=>{$("route").innerHTML=ROUTE.map((r,i)=>`<div class="st${i===act?" on":""}" style="--c:${r.c}"><i></i><b>${r.b}</b><span>${r.s}</span></div>`).join("")};
+const drawRoute=act=>{$("route").innerHTML=ROUTE.map((r,i)=>`<div class="st${i===act?" on":""}"><i></i><b>${r.b}</b><span>${r.s}</span></div>`).join("")};
 drawRoute(-1);
 
 // timer

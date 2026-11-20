@@ -9,8 +9,10 @@ main:
   - title: "blog"
     url: /year-archive/
 
-  - title: "Interview Preparation"
-    url: /drill/
+  - title: "Playground"
+    children:
+      - title: "Interview Preparation"
+        url: /drill/
 
   - title: "cv.pdf"
     url: /files/Sepideh-Shamsizadeh-CV.pdf
