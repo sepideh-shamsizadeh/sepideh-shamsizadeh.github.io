@@ -29,6 +29,7 @@ Built with Jekyll on GitHub Pages. The theme started from Academic Pages / Minim
 
 - **CV:** replace `files/Sepideh-Shamsizadeh-CV.pdf` (keep the file name).
 - **Profile photo:** replace `images/sepideh-shamsizadeh.jpg` (portrait, about 720 px wide).
+- **New article on this site:** start with `_drafts/example-draft.md` and follow the [technical blog workflow](docs/technical-blog.md).
 - **New Medium article:** add a file in `_posts/` like the existing ones, with `medium_url`, `redirect_to`, `image` (put the cover in `images/blog/`), `topic` and a one-sentence `excerpt`.
 - **Tishtar progress:** edit `_data/tishtar_roadmap.yml` (see `docs/tishtar-maintenance.md`).
 

@@ -1,0 +1,4 @@
+<figure class="technical-article__figure">
+  <img src="{{ include.src | relative_url | escape }}" alt="{{ include.alt | escape }}" decoding="async"{% unless include.src == page.cover %} loading="lazy"{% endunless %}>
+  {% if include.caption %}<figcaption>{{ include.caption | escape }}</figcaption>{% endif %}
+</figure>

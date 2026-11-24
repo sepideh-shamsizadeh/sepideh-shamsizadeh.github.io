@@ -4,7 +4,7 @@ permalink: /year-archive/
 title: "Blog"
 author_profile: false
 eyebrow: "Writing"
-lead: "Articles on robotics, kinematics, 3D vision and deep learning. Most are published on Medium."
+lead: "Technical writing on robotics, kinematics, 3D vision and deep learning."
 wide: true
 redirect_from:
   - /portfolio/
@@ -17,6 +17,11 @@ redirect_from:
 <div class="blog-links">
   <a class="button button--primary" href="{{ medium_profile }}"><i class="fab fa-medium" aria-hidden="true"></i> Follow on Medium ↗</a>
   <a class="button" href="{{ base_path }}/feed.xml"><i class="fas fa-rss" aria-hidden="true"></i> RSS</a>
+</div>
+
+<h2 class="archive__subtitle">articles · on this site</h2>
+<div class="archive-notes">
+{% for post in site.posts %}{% unless post.medium_url %}{% include archive-single.html %}{% endunless %}{% endfor %}
 </div>
 
 <h2 class="archive__subtitle">articles · on medium</h2>
@@ -34,9 +39,4 @@ redirect_from:
     </div>
   </article>
 {% endif %}{% endfor %}
-</div>
-
-<h2 class="archive__subtitle">notes · on this site</h2>
-<div class="archive-notes">
-{% for post in site.posts %}{% unless post.medium_url %}{% include archive-single.html %}{% endunless %}{% endfor %}
 </div>

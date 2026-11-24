@@ -37,6 +37,7 @@ include:
   - _pages
   - files
 exclude:
+  - blog/robotics/_posts/2026-11-24-designing_self-driving_car.md
   - .bundle
   - .jekyll-cache
   - .sass-cache

@@ -1,0 +1,6 @@
+{% assign component_path = site.data.article_components[include.name] %}
+{% if component_path %}
+  {% include {{ component_path }} options=include %}
+{% else %}
+  <p class="article-component-error">Unknown article component: {{ include.name | escape }}.</p>
+{% endif %}

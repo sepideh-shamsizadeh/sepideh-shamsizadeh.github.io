@@ -1,0 +1,7 @@
+<div class="article-component" data-article-component="slider">
+  <label>{{ include.options.label | default: "Example value" | escape }}
+    <input type="range" min="0" max="100" value="{{ include.options.value | default: 50 | plus: 0 | at_least: 0 | at_most: 100 }}" disabled>
+  </label>
+  <output aria-hidden="true">{{ include.options.value | default: 50 | plus: 0 | at_least: 0 | at_most: 100 }}</output>
+  <noscript><p>Enable JavaScript to adjust the example slider.</p></noscript>
+</div>

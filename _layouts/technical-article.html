@@ -1,0 +1,38 @@
+---
+layout: default
+---
+
+<main id="main" class="wrap wrap--read technical-article" role="main">
+  <article aria-labelledby="article-title">
+    <header class="technical-article__header">
+      <a class="technical-article__back" href="{{ '/year-archive/' | relative_url }}">Blog</a>
+      <h1 id="article-title">{{ page.title | escape }}</h1>
+      {% if page.excerpt %}
+      <p class="technical-article__description">{{ page.excerpt | markdownify | strip_html | strip | escape_once }}</p>
+      {% endif %}
+      {% assign minutes = content | strip_html | number_of_words | plus: site.words_per_minute | minus: 1 | divided_by: site.words_per_minute | at_least: 1 %}
+      <p class="technical-article__meta">{% if page.date %}<time datetime="{{ page.date | date: '%Y-%m-%d' }}">{{ page.date | date: '%B %-d, %Y' }}</time>{% else %}Draft preview{% endif %} · {{ minutes }} min read</p>
+    </header>
+
+    {% if page.cover %}
+      {% include article/figure.html src=page.cover alt=page.cover_alt caption=page.cover_caption %}
+    {% endif %}
+
+    {% if page.toc %}
+    <nav class="technical-article__toc" aria-label="On this page" hidden>
+      <details open><summary>On this page</summary><ol></ol></details>
+    </nav>
+    {% endif %}
+
+    <div class="prose page__content technical-article__body">
+      {{ content }}
+    </div>
+
+    {% if page.categories.size > 0 or page.tags.size > 0 %}
+    <footer class="technical-article__topics">
+      {% if page.categories.size > 0 %}<p>Categories · {{ page.categories | join: ', ' | escape }}</p>{% endif %}
+      {% if page.tags.size > 0 %}<p>Tags · {{ page.tags | join: ', ' | escape }}</p>{% endif %}
+    </footer>
+    {% endif %}
+  </article>
+</main>

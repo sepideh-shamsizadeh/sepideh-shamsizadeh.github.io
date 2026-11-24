@@ -7,3 +7,8 @@ Gemfile.lock
 node_modules/
 .venv/
 .DS_Store
+
+# Keep personal drafts and unpublished article images on this computer.
+/_drafts/*
+!/_drafts/example-draft.md
+/images/blog/draft-assets/
