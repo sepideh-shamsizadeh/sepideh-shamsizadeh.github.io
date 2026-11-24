@@ -19,11 +19,6 @@ redirect_from:
   <a class="button" href="{{ base_path }}/feed.xml"><i class="fas fa-rss" aria-hidden="true"></i> RSS</a>
 </div>
 
-<h2 class="archive__subtitle">articles · on this site</h2>
-<div class="archive-notes">
-{% for post in site.posts %}{% unless post.medium_url %}{% include archive-single.html %}{% endunless %}{% endfor %}
-</div>
-
 <h2 class="archive__subtitle">articles · on medium</h2>
 <div class="post-grid">
 {% for post in site.posts %}{% if post.medium_url %}
