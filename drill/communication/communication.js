@@ -215,7 +215,7 @@
       };
     }
     const form = mount.querySelector("form");
-    window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer);
+    window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, { session: session?.id });
     const timer = form.elements.duration;
     const start = mount.querySelector("#comm-start");
     const stop = mount.querySelector("#comm-stop");

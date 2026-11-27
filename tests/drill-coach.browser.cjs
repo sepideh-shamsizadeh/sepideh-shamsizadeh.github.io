@@ -45,9 +45,11 @@ for (const theme of ["dark", "light"]) {
             calls++;
             if (outage) return route.abort();
           }
-          const request = new Request(url, { method: original.method(), headers: {
-            ...await original.allHeaders(), Origin: site
-          }, body: original.postData() || undefined });
+          // The browser already sends an origin header; replace it rather than merging two values.
+          const headers = Object.fromEntries(Object.entries(await original.allHeaders())
+            .filter(([name]) => name.toLowerCase() !== "origin"));
+          const request = new Request(url, { method: original.method(), headers: { ...headers, Origin: site },
+            body: original.postData() || undefined });
           const response = await handle(request, env, ledger, {
             now: () => (now += 2500),
             verify: async credential => ({ sub: "123", nonce: credential })
@@ -127,12 +129,60 @@ for (const theme of ["dark", "light"]) {
       await byButton("Start 5-minute quick practice").click();
       assert.ok(await page.getByText("AI Communication Coach", { exact: true }).isVisible());
       assert.equal(calls, 3);
+
+      // Daily (quick) session: evaluate each answer step, then compare on the review step.
+      const coach = () => page.getByText("AI Communication Coach", { exact: true });
+      const rateAll = async value => {
+        for (const select of await page.locator("#comm-assessment select[name]:not([name='duration'])").all()) {
+          await select.selectOption(value);
+        }
+      };
+      await coach().click();
+      await byButton("Set up Google Sign-In").click();
+      await byButton("Mock Google Sign-In").click();
+      await evaluation().waitFor();
+      assert.ok(await page.getByText("Evaluations today · 2 of 10", { exact: true }).isVisible());
+      assert.ok(await page.getByText("Monthly budget used", { exact: false }).isVisible());
+      for (const [index, text] of ["First session answer", "Second session answer"].entries()) {
+        if (index) {
+          await coach().click();
+          await evaluation().waitFor();
+        }
+        await input.fill(text);
+        await evaluation().click();
+        await page.getByRole("heading", { name: "Mock result · 3.0 / 5" }).waitFor();
+        await rateAll("1");
+        await byButton("Save and next question").click();
+      }
+      await coach().click();
+      await page.getByText("Earlier AI assessment in this session · 3.0 / 5.", { exact: false }).waitFor();
+      await evaluation().waitFor();
+      await input.fill("Revised session answer with a measurable result");
+      await evaluation().click();
+      await byButton("Compare attempts").click();
+      assert.ok(await page.getByText("First session answer", { exact: true }).last().isVisible());
+      assert.ok(await page.getByText("Revised session answer with a measurable result", { exact: true }).last().isVisible());
+      assert.equal(calls, 6);
+      await rateAll("3");
+      await byButton("Save and finish session").click();
+      await page.getByText("Session complete.", { exact: false }).waitFor();
+      const sessionStorage = await page.evaluate(() => JSON.stringify(localStorage));
+      assert.ok(!sessionStorage.includes("session answer"));
+
+      // A live (non-mock) saved score appears in the question-level summary.
+      await page.evaluate(() => window.DrillCoachProgress.save(localStorage, {
+        id: "live-row", questionId: "iou", topic: "cv", category: "concept", at: new Date().toISOString(),
+        model: "gpt-5.4-mini-2026-03-17", rubric: 1, overall: 2.5,
+        scores: { accuracy: 2, depth: 3, structure: 2, clarity: 3, concise: 3, english: 2, reasoning: null, practical: 3 }
+      }));
       await page.reload();
       await byButton("Progress").click();
       await page.getByText("AI assessment history", { exact: true }).click();
-      assert.equal(await byButton("Delete saved AI score").count(), 2);
+      await page.getByText("AI scores by question", { exact: true }).click();
+      assert.ok(await page.getByText("What is IoU? · latest 2.5 · best 2.5 · 1 attempt", { exact: true }).isVisible());
+      assert.equal(await byButton("Delete saved AI score").count(), 3);
       await byButton("Delete saved AI score").first().click();
-      assert.equal(await byButton("Delete saved AI score").count(), 1);
+      assert.equal(await byButton("Delete saved AI score").count(), 2);
       assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       assert.deepEqual(pageErrors, []);

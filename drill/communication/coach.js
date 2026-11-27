@@ -19,7 +19,8 @@
     feedback: "The evaluation returned incomplete feedback. Your answer is still here.",
     follow_up: "This follow-up expired. You can continue with the original question."
   };
-  let endpoint, auth, googleLoader, instance = 0, dispose;
+  let endpoint, auth, googleLoader, instance = 0, dispose, memorySession = null;
+  const memory = new Map();
 
   try {
     const url = new URL(root.dataset.coachApi);
@@ -99,6 +100,18 @@
     element("summary", label, node);
     return node;
   }
+  function meter(parent, label, value, max, text) {
+    const row = element("label", undefined, parent);
+    row.className = "comm-coach-meter";
+    element("span", `${label} · ${text}`, row);
+    const bar = element("meter", undefined, row);
+    bar.min = 0;
+    bar.max = Math.max(1, max);
+    bar.value = Math.min(value, bar.max);
+    bar.high = bar.max * 0.8;
+    bar.optimum = 0;
+    return bar;
+  }
   function list(parent, title, values) {
     if (!values.length) return;
     element("h4", title, parent);
@@ -106,16 +119,29 @@
     for (const value of values) element("li", value, items);
   }
 
-  function mount(container, question, answerInput) {
+  function mount(container, question, answerInput, context = {}) {
     const generation = ++instance;
     const active = () => instance === generation && container.isConnected;
+    // Within a daily session, keep the first evaluation of each question in page memory so the review
+    // step can compare against it. Leaving the session (or using Free Practice) discards it.
+    const sessionId = context.session ?? null;
+    if (sessionId !== memorySession) {
+      memory.clear();
+      memorySession = sessionId;
+    }
+    const memoryKey = sessionId && sessionId + ":" + question.id;
     const box = details(container, "AI Communication Coach");
     const status = element("p", undefined, box);
     status.setAttribute("role", "status");
     const controls = element("div", undefined, box);
+    const earlier = element("p", undefined, box);
     const output = element("div", undefined, box);
-    let result, initial, followUp, usage, config, busy = false;
+    let result, initial = memoryKey ? memory.get(memoryKey) ?? null : null, followUp, usage, config, busy = false;
     let input = answerInput;
+    if (initial) {
+      earlier.textContent = `Earlier AI assessment in this session · ${initial.feedback.overall.toFixed(1)} / 5. ` +
+        "Evaluate your revised answer to compare the two attempts.";
+    } else earlier.hidden = true;
     const signedIn = () => auth && auth.expires > Date.now();
 
     dispose = () => {
@@ -142,6 +168,11 @@
       evaluate.disabled = busy || usage?.remainingToday === 0 || usage?.remainingMonthlyMicros === 0;
       button(actions, "Sign out", signOut);
       if (usage) {
+        const daily = usage.evaluationsToday + usage.remainingToday;
+        const monthly = usage.estimatedMonthlyMicros + usage.remainingMonthlyMicros;
+        meter(controls, "Evaluations today", usage.evaluationsToday, daily, `${usage.evaluationsToday} of ${daily}`);
+        meter(controls, "Monthly budget used", usage.estimatedMonthlyMicros, monthly,
+          `${money(usage.estimatedMonthlyMicros)} of ${money(monthly)}`);
         element("p", `${usage.evaluationsToday} used today · ${usage.remainingToday} left · ${usage.inputTokensToday} input and ${usage.outputTokensToday} output tokens reported`, controls);
         element("p", `Estimated today ${money(usage.estimatedDailyMicros)} · month ${money(usage.estimatedMonthlyMicros)} · available ${money(usage.remainingMonthlyMicros)}`, controls);
         if (usage.reservedMonthlyMicros) element("p", `Includes ${money(usage.reservedMonthlyMicros)} in unsettled reservations.`, controls);
@@ -195,6 +226,8 @@
     async function signOut() {
       const session = auth?.session;
       auth = null;
+      memory.clear();
+      earlier.hidden = true;
       result = initial = followUp = usage = null;
       input = answerInput;
       output.replaceChildren();
@@ -239,6 +272,7 @@
         if (!active() || auth?.session !== session) return;
         initial ??= { ...evaluated, answer, at: new Date().toISOString() };
         result = { ...evaluated, answer, at: new Date().toISOString() };
+        if (memoryKey && !followUp && !memory.has(memoryKey)) memory.set(memoryKey, initial);
         usage = evaluated.usage;
         renderFeedback();
         showStatus("Evaluation complete.");
@@ -390,6 +424,15 @@
         for (const [skill, label] of Object.entries(skills)) {
           const values = live.map(row => row.scores[skill]).filter(value => value !== null);
           if (values.length) element("p", `${label} · ${average(values)} / 5`, skillList);
+        }
+        const questions = details(section, "AI scores by question");
+        questions.className = "comm-coach-questions";
+        const items = element("ul", undefined, questions);
+        for (const entry of progress.byQuestion(rows)) {
+          const name = bank.find(q => q.id === entry.questionId)?.prompt ?? entry.questionId;
+          const review = entry.reviewAt ? ` · review ${new Date(entry.reviewAt).toLocaleDateString()}` : "";
+          element("li", `${name} · latest ${entry.latest.toFixed(1)} · best ${entry.best.toFixed(1)} · ` +
+            `${entry.attempts} ${entry.attempts === 1 ? "attempt" : "attempts"}${review}`, items);
         }
       }
       const attempts = element("ul", undefined, section);

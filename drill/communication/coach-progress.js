@@ -49,7 +49,26 @@
     write(storage, load(storage).filter(item => item.id !== id));
   }
 
-  const api = { key, skills, load, save, remove };
+  // Question-level view of saved AI scores: attempts, latest and best overall, and the latest review date.
+  // Mock rows are excluded so interface testing never skews real progress.
+  function byQuestion(rows) {
+    const questions = new Map();
+    for (const row of rows) {
+      if (row.mock) continue;
+      const entry = questions.get(row.questionId) ??
+        { questionId: row.questionId, attempts: 0, latest: null, best: null, reviewAt: null };
+      entry.attempts += 1;
+      if (!entry.latest || row.at >= entry.latest.at) entry.latest = row;
+      if (entry.best === null || row.overall > entry.best) entry.best = row.overall;
+      if (row.reviewAt && (!entry.reviewAt || row.reviewAt > entry.reviewAt)) entry.reviewAt = row.reviewAt;
+      questions.set(row.questionId, entry);
+    }
+    return [...questions.values()]
+      .map(({ latest, ...entry }) => ({ ...entry, latest: latest.overall, latestAt: latest.at }))
+      .sort((a, b) => a.latest - b.latest || a.questionId.localeCompare(b.questionId));
+  }
+
+  const api = { key, skills, load, save, remove, byQuestion };
   if (typeof document === "undefined" && typeof module === "object") module.exports = api;
   else root.DrillCoachProgress = api;
 })(globalThis);

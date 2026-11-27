@@ -217,3 +217,19 @@ test("the coach history stores and removes only score metadata in a separate ver
   progress.remove(storage, row.id);
   assert.deepEqual(progress.load(storage), []);
 });
+
+test("question-level AI scores summarize latest, best, attempts and review dates without mock rows", () => {
+  const row = (id, questionId, overall, at, extra = {}) => ({ id, questionId, overall, at, reviewAt: null, mock: false, ...extra });
+  const summary = progress.byQuestion([
+    row("a", "iou", 2, "2026-11-20T10:00:00.000Z"),
+    row("b", "iou", 4, "2026-11-21T10:00:00.000Z", { reviewAt: "2026-11-22T10:00:00.000Z" }),
+    row("c", "iou", 3, "2026-11-23T10:00:00.000Z"),
+    row("d", "iou-plain", 1.5, "2026-11-23T10:00:00.000Z"),
+    row("e", "iou-plain", 5, "2026-11-24T10:00:00.000Z", { mock: true })
+  ]);
+  assert.deepEqual(summary, [
+    { questionId: "iou-plain", attempts: 1, best: 1.5, reviewAt: null, latest: 1.5, latestAt: "2026-11-23T10:00:00.000Z" },
+    { questionId: "iou", attempts: 3, best: 4, reviewAt: "2026-11-22T10:00:00.000Z", latest: 3, latestAt: "2026-11-23T10:00:00.000Z" }
+  ]);
+  assert.deepEqual(progress.byQuestion([]), []);
+});
