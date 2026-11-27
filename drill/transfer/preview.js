@@ -19,6 +19,7 @@
       incoming.communication && `${incoming.communication.attempts.length} communication attempts`,
       incoming.communication && `${Object.keys(incoming.communication.lessons).length} completed lessons`,
       incoming.communication && `${incoming.communication.sessions.length} completed sessions`,
+      incoming.aiCoach && `${incoming.aiCoach.attempts.length} AI assessment scores`,
       incoming.theme && "theme preference"
     ].filter(Boolean).join(" · ");
     byId("apply").disabled = !changes.length;

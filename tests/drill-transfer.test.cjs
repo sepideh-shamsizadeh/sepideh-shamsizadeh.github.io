@@ -2,6 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const transfer = require("../drill/transfer/transfer.js");
 const model = require("../drill/communication/model.js");
+const coachProgress = require("../drill/communication/coach-progress.js");
 
 const day = "2026-11-27";
 const ratings = { accuracy: 4, depth: 4, structure: 3, clarity: 4, concise: 3, english: 5 };
@@ -86,4 +87,48 @@ test("new assessments store metadata and leave existing saved text untouched", (
   assert.equal(data.attempts[0].answer, "legacy");
   assert.equal(data.attempts[1].answer, undefined);
   assert.equal(data.attempts[1].notes, undefined);
+});
+
+const coachKey = "drill-ai-coach-v1";
+const coachRow = (id, overall, extra = {}) => ({
+  id, questionId: "iou", topic: "cv", category: "concept", at: `2026-11-2${id.length}T10:00:00.000Z`,
+  model: "gpt-5.4-mini-2026-03-17", rubric: 1, overall, mock: false, reviewAt: null,
+  scores: { accuracy: 3, depth: 3, structure: 3, clarity: 3, concise: 3, english: 3, reasoning: null, practical: 3 },
+  ...extra
+});
+
+test("AI Coach scores transfer as metadata only, merge by id and never carry answers or feedback", () => {
+  const stored = { version: 1, attempts: [coachRow("a", 3, {
+    answer: "private answer", feedback: { improvedAnswer: "private example" }, notes: "private notes", transcript: "private"
+  })] };
+  const source = memory({ [coachKey]: JSON.stringify(stored) });
+  const snapshot = transfer.snapshot(source);
+  assert.equal(JSON.stringify(snapshot).includes("private"), false);
+  assert.deepEqual(Object.keys(snapshot.aiCoach.attempts[0]).sort(),
+    ["at", "category", "id", "mock", "model", "overall", "questionId", "reviewAt", "rubric", "scores", "topic"]);
+  const file = transfer.parse(JSON.stringify(snapshot));
+
+  const destination = memory({ [coachKey]: JSON.stringify({ version: 1, attempts: [coachRow("a", 2), coachRow("bb", 4)] }) });
+  transfer.apply(destination, transfer.plan(destination, file));
+  const merged = () => JSON.parse(destination.getItem(coachKey)).attempts;
+  assert.deepEqual(merged().map(row => [row.id, row.overall]), [["a", 2], ["bb", 4]]);
+  assert.deepEqual(transfer.plan(destination, file), []);
+  transfer.apply(destination, transfer.plan(destination, file, true));
+  assert.deepEqual(merged().map(row => [row.id, row.overall]), [["a", 3], ["bb", 4]]);
+  assert.deepEqual(transfer.plan(destination, file, true), []);
+
+  const empty = memory();
+  transfer.apply(empty, transfer.plan(empty, file));
+  assert.equal(empty.getItem(coachKey).includes("private"), false);
+  assert.deepEqual(coachProgress.byQuestion(coachProgress.load(empty)).map(entry => entry.latest), [3]);
+});
+
+test("invalid AI Coach rows or versions cannot be imported", () => {
+  const parse = aiCoach => transfer.parse(JSON.stringify({ format: "drill-progress", version: 1, aiCoach }));
+  assert.throws(() => parse({ version: 2, attempts: [] }));
+  assert.throws(() => parse({ version: 1, attempts: [coachRow("a", 9)] }));
+  assert.throws(() => parse({ version: 1, attempts: [coachRow("a", 3, { scores: { accuracy: 7 } })] }));
+  assert.throws(() => parse({ version: 1, attempts: [coachRow("Bad Id", 3)] }));
+  assert.throws(() => parse({ version: 1, attempts: [coachRow("a", 3, { model: "other-model" })] }));
+  assert.equal(parse({ version: 1, attempts: [] }).aiCoach.attempts.length, 0);
 });

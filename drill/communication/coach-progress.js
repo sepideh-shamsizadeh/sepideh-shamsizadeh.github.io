@@ -68,7 +68,8 @@
       .sort((a, b) => a.latest - b.latest || a.questionId.localeCompare(b.questionId));
   }
 
-  const api = { key, skills, load, save, remove, byQuestion };
+  // `normalize` returns only allowlisted score metadata (no answers or feedback) or throws.
+  const api = { key, skills, load, save, remove, byQuestion, normalize: metadata };
   if (typeof document === "undefined" && typeof module === "object") module.exports = api;
   else root.DrillCoachProgress = api;
 })(globalThis);

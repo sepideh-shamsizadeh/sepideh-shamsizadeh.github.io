@@ -20,6 +20,13 @@ const communication = {
   lessons: { structured: "2026-11-27" }, sessions: [{ mode: "daily", day: "2026-11-27" }]
 };
 
+const aiCoach = { version: 1, attempts: [{
+  id: "eval-1", questionId: "iou", topic: "cv", category: "concept", at: "2026-11-27T10:00:00.000Z",
+  model: "gpt-5.4-mini-2026-03-17", rubric: 1, overall: 2.5, mock: false, reviewAt: "2026-11-28T10:00:00.000Z",
+  scores: { accuracy: 2, depth: 3, structure: 2, clarity: 3, concise: 3, english: 2, reasoning: null, practical: 3 },
+  answer: "private coach answer", feedback: "private coach feedback"
+}] };
+
 test("download on Pages and import on another origin while keeping private text on Pages", async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
   try {
@@ -42,11 +49,12 @@ test("download on Pages and import on another origin while keeping private text 
       if ([old, next].includes(url.origin) && response.status() >= 400) errors.push(url.pathname);
     });
     assert.equal((await page.goto(old + "/drill/")).status(), 200);
-    await page.evaluate(({ legacy, communication }) => {
+    await page.evaluate(({ legacy, communication, aiCoach }) => {
       localStorage.setItem("drill-v1", JSON.stringify(legacy));
       localStorage.setItem("drill-communication-v1", JSON.stringify(communication));
+      localStorage.setItem("drill-ai-coach-v1", JSON.stringify(aiCoach));
       localStorage.setItem("theme", "light");
-    }, { legacy, communication });
+    }, { legacy, communication, aiCoach });
     await page.getByRole("link", { name: "Transfer progress" }).click();
     const downloading = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download progress" }).click();
@@ -59,6 +67,7 @@ test("download on Pages and import on another origin while keeping private text 
     const picker = page.getByLabel("DRILL progress file");
     await picker.setInputFiles({ name: "drill-progress.json", mimeType: "application/json", buffer: exported });
     await page.getByText("1 flashcard ratings", { exact: false }).waitFor();
+    assert.ok(await page.getByText("1 AI assessment scores", { exact: false }).isVisible());
     await page.getByRole("button", { name: "Import progress", exact: true }).click();
     await page.getByText("Progress imported.", { exact: false }).waitFor();
     await page.reload();
@@ -72,6 +81,10 @@ test("download on Pages and import on another origin while keeping private text 
     await page.getByRole("button", { name: "Progress", exact: true }).click();
     assert.ok(await page.getByText("4.0 / 5", { exact: true }).first().isVisible());
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("drill-communication-v1")).attempts.length), 1);
+    await page.getByText("AI assessment history", { exact: true }).click();
+    await page.getByText("AI scores by question", { exact: true }).click();
+    assert.ok(await page.getByText("What is IoU? · latest 2.5 · best 2.5 · 1 attempt", { exact: false }).isVisible());
+    assert.equal((await page.evaluate(() => JSON.stringify(localStorage))).includes("private"), false);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     await page.goto(old + "/drill/");
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("drill-communication-v1"))), communication);

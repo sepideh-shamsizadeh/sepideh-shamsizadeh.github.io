@@ -1,7 +1,11 @@
 (function (root) {
   const drillKey = "drill-v1";
   const communicationKey = "drill-communication-v1";
+  const coachKey = "drill-ai-coach-v1";
   const themeKey = "theme";
+  // AI Coach scores are validated by the coach's own allowlist, which drops answers and feedback.
+  const coachProgress = root.DrillCoachProgress ??
+    (typeof document === "undefined" && typeof require === "function" ? require("../communication/coach-progress.js") : null);
   const maxBytes = 2_000_000;
   const own = (object, key) => Object.hasOwn(object, key);
   const record = value => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -79,6 +83,21 @@
     };
   }
 
+  function aiCoach(value) {
+    requireValue(coachProgress && record(value) && value.version === 1 && Array.isArray(value.attempts));
+    const rows = new Map();
+    for (const entry of value.attempts) {
+      let row;
+      try {
+        row = coachProgress.normalize(entry);
+      } catch {
+        requireValue(false);
+      }
+      rows.set(row.id, row);
+    }
+    return { version: 1, attempts: [...rows.values()].sort((a, b) => a.at.localeCompare(b.at)) };
+  }
+
   function theme(value) {
     requireValue(value === "dark" || value === "light");
     return value;
@@ -88,9 +107,11 @@
     const result = { format: "drill-progress", version: 1 };
     const legacy = storage.getItem(drillKey);
     const coaching = storage.getItem(communicationKey);
+    const scores = storage.getItem(coachKey);
     const preference = storage.getItem(themeKey);
     if (legacy !== null) result.drill = drill(JSON.parse(legacy));
     if (coaching !== null) result.communication = communication(JSON.parse(coaching));
+    if (scores !== null) result.aiCoach = aiCoach(JSON.parse(scores));
     if (preference !== null) result.theme = theme(preference);
     return result;
   }
@@ -102,6 +123,7 @@
     const result = {};
     if (own(file, "drill")) result.drill = drill(file.drill);
     if (own(file, "communication")) result.communication = communication(file.communication);
+    if (own(file, "aiCoach")) result.aiCoach = aiCoach(file.aiCoach);
     if (own(file, "theme")) result.theme = theme(file.theme);
     requireValue(Object.keys(result).length > 0);
     return result;
@@ -175,6 +197,22 @@
         lessons: { ...source.lessons, ...current.lessons },
         minutes: preferSource ? source.minutes : current.minutes
       });
+    });
+    if (incoming.aiCoach) stage(coachKey, before => {
+      const source = incoming.aiCoach.attempts;
+      if (before === null) return JSON.stringify(incoming.aiCoach);
+      const current = aiCoach(JSON.parse(before)).attempts;
+      const rows = new Map(current.map(row => [row.id, row]));
+      let changed = false;
+      for (const row of source) {
+        const existing = rows.get(row.id);
+        if (existing && (!preferSource || JSON.stringify(existing) === JSON.stringify(row))) continue;
+        rows.set(row.id, row);
+        changed = true;
+      }
+      if (!changed) return before;
+      const attempts = [...rows.values()].sort((a, b) => a.at.localeCompare(b.at));
+      return JSON.stringify({ version: 1, attempts });
     });
     if (incoming.theme) stage(themeKey, before => before === null || preferSource ? incoming.theme : before);
     return changes;
