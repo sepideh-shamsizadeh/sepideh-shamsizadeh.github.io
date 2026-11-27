@@ -61,7 +61,7 @@ export async function verifyGoogle(token, { client, now, fetcher = fetch }) {
 
 export async function sealFollowUp(questionId, prompt, now, secret) {
   const body = base64(encoder.encode(JSON.stringify([questionId, prompt, now + 30 * 60_000])));
-  return body + "." + await keyed(body, secret);
+  return body + "." + await keyed("follow-up:" + body, secret);
 }
 
 export async function openFollowUp(reference, questionId, now, secret) {
@@ -69,7 +69,7 @@ export async function openFollowUp(reference, questionId, now, secret) {
   try {
     const [body, signature, extra] = reference.split(".");
     if (extra !== undefined || !signature || !body) return null;
-    const expected = await keyed(body, secret);
+    const expected = await keyed("follow-up:" + body, secret);
     if (signature.length !== expected.length) return null;
     let difference = 0;
     for (let i = 0; i < expected.length; i++) difference |= expected.charCodeAt(i) ^ signature.charCodeAt(i);

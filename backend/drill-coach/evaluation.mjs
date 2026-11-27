@@ -1,5 +1,8 @@
 export const DEFAULT_MODEL = "gpt-5.4-mini-2026-03-17";
-const prices = { [DEFAULT_MODEL]: { input: 0.75, output: 4.5 } }; // USD per million equals microdollars per token.
+// Standard-tier USD per million tokens (equals microdollars per token). Verified 2026-11-27 against
+// developers.openai.com/api/docs/models/gpt-5.4-mini and /api/docs/pricing. Cached input ($0.075) is
+// billed lower, so charging all input at the full rate keeps estimates conservative.
+const prices = { [DEFAULT_MODEL]: { input: 0.75, output: 4.5 } };
 const OUTPUT_CAP = 1500;
 const INPUT_CAP = 12_000;
 export const MAX_ANSWER_BYTES = 2400;
@@ -66,7 +69,7 @@ export function buildEvaluation({ model, exercise, prompt, answer }) {
   if (!Object.hasOwn(prices, model)) return null;
   const inapplicable = exercise.reasoning ? [] : ["reasoning"];
   const payload = {
-    model, store: false, truncation: "disabled", max_output_tokens: OUTPUT_CAP,
+    model, store: false, service_tier: "default", truncation: "disabled", max_output_tokens: OUTPUT_CAP,
     reasoning: { effort: "none" }, instructions,
     input: [{ role: "user", content: JSON.stringify({
       question: prompt, framework: exercise.structure, exampleReference: exercise.example, inapplicable, answer

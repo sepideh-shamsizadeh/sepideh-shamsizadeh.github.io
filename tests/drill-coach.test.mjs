@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { Ledger, MONTHLY_CAP } from "../backend/drill-coach/ledger.mjs";
+import { Ledger, MAX_CHALLENGES, MONTHLY_CAP } from "../backend/drill-coach/ledger.mjs";
 import { handle } from "../backend/drill-coach/service.mjs";
 import { DEFAULT_MODEL, buildEvaluation, feedbackFor, mockOpenAI } from "../backend/drill-coach/evaluation.mjs";
 import { verifyGoogle } from "../backend/drill-coach/identity.mjs";
@@ -232,4 +232,84 @@ test("question-level AI scores summarize latest, best, attempts and review dates
     { questionId: "iou", attempts: 3, best: 4, reviewAt: "2026-11-22T10:00:00.000Z", latest: 3, latestAt: "2026-11-23T10:00:00.000Z" }
   ]);
   assert.deepEqual(progress.byQuestion([]), []);
+});
+
+test("administrative recovery requires maintenance mode, the admin secret, rate limits and reconciliation", async () => {
+  const { send, login, advance, ledger } = setup();
+  const live = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "mock-only" };
+  const adminSecret = "admin-recovery-placeholder-secret-0123456789";
+  const maintenance = { ...base, COACH_MODE: "maintenance", ADMIN_RECOVERY_SECRET: adminSecret };
+  const { session } = await login(live);
+
+  // Trip the latch: reported output exceeds the reserved bound.
+  const over = await send("/v1/evaluations", "POST", { env: live, session, body: answer("trip"),
+    options: { fetcher: async () => Response.json({ usage: { input_tokens: 10, output_tokens: 1600 } }) } });
+  assert.equal(over.status, 503);
+  assert.ok(ledger.latched());
+
+  // Admin routes do not exist outside maintenance mode or without a configured secret.
+  assert.equal((await send("/v1/admin/status", "GET", { env: { ...live, ADMIN_RECOVERY_SECRET: adminSecret }, session: adminSecret })).status, 404);
+  assert.equal((await send("/v1/admin/status", "GET", { env: { ...maintenance, ADMIN_RECOVERY_SECRET: "short" }, session: adminSecret })).status, 404);
+
+  // Maintenance mode disables the public coach entirely.
+  const config = await (await send("/v1/config", "GET", { env: maintenance })).json();
+  assert.equal(config.enabled, false);
+  assert.equal((await send("/v1/evaluations", "POST", { env: maintenance, session, body: answer("blocked") })).status, 503);
+
+  assert.equal((await send("/v1/admin/status", "GET", { env: maintenance })).status, 401);
+  assert.equal((await send("/v1/admin/status", "GET", { env: maintenance, session: "x".repeat(40) })).status, 401);
+  const status = await send("/v1/admin/status", "GET", { env: maintenance, session: adminSecret });
+  assert.equal(status.status, 200);
+  assert.equal(status.headers.get("Access-Control-Allow-Origin"), null);
+  const before = await status.json();
+  assert.equal(before.latched, true);
+  const ledgerMicros = before.totals.estimatedMonthlyMicros;
+
+  const recover = body => send("/v1/admin/recover", "POST", { env: maintenance, session: adminSecret, body });
+  const valid = { requestId: crypto.randomUUID(), month: "2026-11", reportedSpendMicros: ledgerMicros + 50_000,
+    confirm: "RECONCILED-WITH-OPENAI-USAGE" };
+  // Five admin requests per minute, counting failed attempts. Start a fresh window.
+  advance(60_000);
+  assert.equal((await recover({ ...valid, confirm: "yes" })).status, 400);
+  assert.equal((await recover({ ...valid, extra: 1 })).status, 400);
+  assert.equal((await recover({ ...valid, reportedSpendMicros: -1 })).status, 400);
+  assert.equal((await recover({ ...valid, month: "2026-10" })).status, 409);
+  const recovered = await recover(valid);
+  assert.equal(recovered.status, 200);
+  const result = await recovered.json();
+  assert.equal(result.wasLatched, true);
+  assert.equal(result.adjustmentMicros, 50_000);
+  assert.equal(result.totals.estimatedMonthlyMicros, ledgerMicros + 50_000);
+  assert.equal(ledger.latched(), null);
+  assert.equal((await recover(valid)).status, 429);
+  advance(60_000);
+  assert.equal((await recover(valid)).status, 409);
+  const after = await (await send("/v1/admin/status", "GET", { env: maintenance, session: adminSecret })).json();
+  assert.equal(after.recoveries.length, 1);
+  assert.equal(after.recoveries[0].reported, ledgerMicros + 50_000);
+
+  // Back in live mode, evaluations resume and the reconciled spend counts against the budget.
+  advance(3000);
+  let called = false;
+  const resumed = await send("/v1/evaluations", "POST", { env: live, session: (await login(live)).session, body: answer("resumed"),
+    options: { fetcher: async (url, request) => {
+      called = true;
+      assert.equal(JSON.parse(request.body).service_tier, "default");
+      return Response.json({ model: DEFAULT_MODEL, status: "incomplete", usage: { input_tokens: 5, output_tokens: 5 } });
+    } } });
+  assert.equal(called, true);
+  assert.equal(resumed.status, 502);
+});
+
+test("recovery never lowers the ledger, refuses in-flight evaluations, and challenges are bounded", () => {
+  const { ledger } = setup();
+  assert.equal(ledger.reserve("a", "a", time, 5000), "accepted");
+  assert.equal(ledger.recover("r1", time + 1000, "2026-11", 0).error, "busy");
+  ledger.settle("a", { cost: 4000, input: 1, output: 1 }, time);
+  const result = ledger.recover("r1", time + 1000, "2026-11", 1000);
+  assert.equal(result.adjustmentMicros, 0);
+  assert.equal(result.totals.estimatedMonthlyMicros, 4000);
+  for (let i = 0; i < MAX_CHALLENGES; i++) assert.equal(ledger.challenge("n" + i, time, time + 300_000), true);
+  assert.equal(ledger.challenge("overflow", time, time + 300_000), false);
+  assert.equal(ledger.challenge("after-expiry", time + 300_000, time + 600_000), true);
 });

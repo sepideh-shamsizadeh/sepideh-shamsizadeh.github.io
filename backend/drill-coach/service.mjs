@@ -55,7 +55,53 @@ export function allowedOrigin(request, env) {
   return origin && origin === env.ALLOWED_ORIGIN ? origin : null;
 }
 
+export function isAdmin(request) {
+  return new URL(request.url).pathname.startsWith("/v1/admin/");
+}
+
+const adminRoutes = { "GET /v1/admin/status": true, "POST /v1/admin/recover": true };
+export const RECOVERY_CONFIRMATION = "RECONCILED-WITH-OPENAI-USAGE";
+const MAX_REPORTED_MICROS = 100_000_000;
+
+function constantTimeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let difference = 0;
+  for (let i = 0; i < a.length; i++) difference |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return difference === 0;
+}
+
+// Administrative recovery runs only in COACH_MODE=maintenance, from the command line.
+// No CORS headers are sent, so no web page can call these routes. Access requires all of:
+// Cloudflare account access (to deploy maintenance mode and set the secret), the
+// ADMIN_RECOVERY_SECRET bearer token, and an explicit reconciliation with OpenAI's reported spend.
+async function admin(request, env, ledger, options) {
+  const error = (status, code) => reply(status, { error: code });
+  const route = request.method + " " + new URL(request.url).pathname;
+  const expected = env.ADMIN_RECOVERY_SECRET;
+  if (env.COACH_MODE !== "maintenance" || !Object.hasOwn(adminRoutes, route) ||
+    typeof expected !== "string" || expected.length < 32 ||
+    typeof env.DEDUPE_SECRET !== "string" || env.DEDUPE_SECRET.length < 32) return error(404, "not_found");
+  const now = (options.now ?? Date.now)();
+  if (!ledger.authenticateRate(await keyed("admin:" + Math.floor(now / 60_000), env.DEDUPE_SECRET), now, 5)) {
+    return error(429, "rate");
+  }
+  const provided = request.headers.get("Authorization")?.match(/^Bearer (\S{32,512})$/)?.[1];
+  if (!provided || !constantTimeEqual(await digest(provided), await digest(expected))) return error(401, "auth");
+  if (route === "GET /v1/admin/status") return reply(200, ledger.status(now));
+
+  const fields = await json(request);
+  if (!fields || Object.keys(fields).sort().join() !== "confirm,month,reportedSpendMicros,requestId" ||
+    fields.confirm !== RECOVERY_CONFIRMATION || typeof fields.month !== "string" || !/^\d{4}-\d{2}$/.test(fields.month) ||
+    !Number.isSafeInteger(fields.reportedSpendMicros) || fields.reportedSpendMicros < 0 ||
+    fields.reportedSpendMicros > MAX_REPORTED_MICROS || typeof fields.requestId !== "string" ||
+    !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(fields.requestId)) return error(400, "invalid");
+  const result = ledger.recover(fields.requestId.toLowerCase(), now, fields.month, fields.reportedSpendMicros);
+  if (result.error) return error(409, result.error);
+  return reply(200, result);
+}
+
 export async function handle(request, env, ledger, options = {}) {
+  if (isAdmin(request)) return admin(request, env, ledger, options);
   const origin = allowedOrigin(request, env);
   const respond = (status, body) => reply(status, body, origin);
   const error = (status, code) => respond(status, { error: code });
@@ -83,7 +129,7 @@ export async function handle(request, env, ledger, options = {}) {
     if (!ledger.authenticateRate(bucket, now)) return error(429, "rate");
     if (route.endsWith("/challenge")) {
       const nonce = randomToken();
-      ledger.challenge(await digest(nonce), now + 5 * 60_000);
+      if (!ledger.challenge(await digest(nonce), now, now + 5 * 60_000)) return error(429, "rate");
       return respond(200, { nonce });
     }
     const fields = await json(request);
@@ -138,7 +184,7 @@ export async function handle(request, env, ledger, options = {}) {
     return error(504, "timeout");
   }
   const usage = usageFor(result.envelope, evaluation);
-  ledger.settle(requestId, usage);
+  ledger.settle(requestId, usage, (options.now ?? Date.now)());
   if (usage?.exceeded) return error(503, "disabled");
   if (result.envelope?.error?.code === "insufficient_quota") return error(503, "credits");
   if (result.status === 429) return error(503, "provider_limit");
