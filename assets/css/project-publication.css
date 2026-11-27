@@ -1,0 +1,15 @@
+/* Projects and publications use the blog editorial collection styles. */
+.project-grid .post-card h2 {
+  margin: 0;
+  font: 600 1.16rem/1.35 var(--display);
+}
+.project-grid .post-card h2 a { color: var(--ink); text-decoration: none; }
+.project-grid .post-card h2 a:hover { color: var(--accent-ink); text-decoration: underline; }
+.project-grid .post-card__meta, .publication-venue, .publication-details { color: var(--muted); }
+.project-grid .project-stack { font-size: .85rem; }
+.project-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 0; padding: 0; list-style: none; }
+.project-links a { font-size: .91rem; }
+.publication-list article { border-top: 1px solid var(--line); padding-block: 24px; }
+.publication-list h2 { margin: 6px 0 12px; font: 600 clamp(1.25rem, 4vw, 1.65rem)/1.3 var(--display); }
+.publication-list .publication-venue, .publication-list .publication-authors, .publication-list .publication-details { margin: 0 0 8px; }
+.publication-list .publication-details { font-size: .9rem; }

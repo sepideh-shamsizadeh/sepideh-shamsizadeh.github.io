@@ -1,8 +1,9 @@
 ---
 permalink: /story/
-title: "About"
+title: "My Story"
 excerpt: "The longer version: how I got into AI and robotics, what I've worked on, and where I'm heading."
 author_profile: false
+eyebrow: "About · the long version"
 ---
 
 I'm a computer engineer and AI researcher passionate about developing intelligent systems that connect advanced research with real-world applications.
@@ -53,7 +54,7 @@ My academic and research projects included:
 - Autonomous mobile robotics and navigation.
 - Computer vision and machine learning for robotic applications.
 
-My research also contributed to **PanNote**, a robotic perception and automatic annotation framework published at **ICRA 2024**. [View the publication](/publications/).
+My research also contributed to **PanNote**, a robotic perception and automatic annotation framework published at **ICRA 2024**.
 
 ### M.Sc. in Health Information Technology Engineering
 
@@ -93,7 +94,7 @@ Through this project, I aim to explore the complete process of building an auton
 
 Tishtar reflects what I enjoy most about engineering: **turning an ambitious idea into something tangible, one technical challenge at a time.**
 
-## Research interests
+## Research & Publications
 
 My research interests lie at the intersection of:
 
