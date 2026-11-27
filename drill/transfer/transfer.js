@@ -65,6 +65,10 @@
       requireValue(identifier(value.sessionId));
       result.sessionId = value.sessionId;
     }
+    if (value.mode !== undefined) {
+      requireValue(value.mode === "spoken");
+      result.mode = "spoken";
+    }
     return result;
   }
 
@@ -148,7 +152,7 @@
 
   const identifyAttempt = value => JSON.stringify([
     value.questionId, value.category, value.day, value.sessionId ?? null,
-    ratingNames.map(skill => value.ratings[skill] ?? null)
+    ratingNames.map(skill => value.ratings[skill] ?? null), ...(value.mode === "spoken" ? ["spoken"] : [])
   ]);
   const identifySession = value => JSON.stringify([value.mode, value.day]);
 

@@ -101,7 +101,8 @@
     return steps;
   }
 
-  function assessment(question, fields, date = new Date()) {
+  // `mode` is "spoken" when the attempt included a recording; written attempts keep the original shape.
+  function assessment(question, fields, date = new Date(), mode = "written") {
     const ratings = {};
     for (const skill of Object.keys(skills)) {
       if (skill === "reasoning" && !question.reasoning) continue;
@@ -111,7 +112,8 @@
     }
     return {
       questionId: question.id, category: question.category, day: dayKey(date),
-      ratings, answer: String(fields.answer ?? "").trim(), notes: String(fields.notes ?? "").trim()
+      ratings, answer: String(fields.answer ?? "").trim(), notes: String(fields.notes ?? "").trim(),
+      ...(mode === "spoken" ? { mode: "spoken" } : {})
     };
   }
 
@@ -120,7 +122,7 @@
       throw new Error("Session changed");
     }
     const { questionId, category, day, ratings } = attempt;
-    const metadata = { questionId, category, day, ratings };
+    const metadata = { questionId, category, day, ratings, ...(attempt.mode === "spoken" ? { mode: "spoken" } : {}) };
     state.attempts.push(session ? { ...metadata, sessionId: session.id } : metadata);
     if (!session) return;
     const active = state.active;
@@ -152,8 +154,11 @@
       return { day, attempts: attempts.length, average: mean(attempts.map(score)),
         sessions: state.sessions.filter(session => session.day === day).length };
     });
+    const spoken = state.attempts.filter(attempt => attempt.mode === "spoken");
     return {
       completed: latest.length, attempts: state.attempts.length, average: mean(state.attempts.map(score)),
+      spoken: spoken.length, spokenAverage: mean(spoken.map(score)),
+      writtenAverage: mean(state.attempts.filter(attempt => attempt.mode !== "spoken").map(score)),
       bySkill: Object.fromEntries(Object.keys(skills).map(skill => [skill,
         mean(state.attempts.map(attempt => attempt.ratings[skill]).filter(value => value !== undefined))])),
       weak, weakCategories, lessons: Object.keys(state.lessons).length, streak, weekly,

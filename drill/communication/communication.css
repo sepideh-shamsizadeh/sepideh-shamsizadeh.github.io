@@ -212,6 +212,22 @@
 .communication .comm-coach-history p { margin: .25rem 0; }
 .communication :is(#comm-coach, .comm-coach-questions, .comm-coach-history) li { overflow-wrap: anywhere; }
 
+/* Spoken answers: public recorder, owner-only transcript. */
+.communication .comm-recorder { padding: .75rem 1rem; border: 1px solid var(--line-strong); border-radius: var(--radius); }
+.communication .comm-recorder h4 { margin: 0 0 .5rem; font-size: .95rem; }
+.communication .comm-recorder-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0; }
+.communication .comm-recorder-time { display: block; margin-top: .5rem; font-variant-numeric: tabular-nums; font-weight: 650; color: var(--ink); }
+.communication .comm-recorder-time:empty, .communication .comm-recorder-status:empty { display: none; }
+.communication .comm-recorder-status { margin: .5rem 0 0; font-size: .92rem; }
+.communication .comm-recorder audio { display: block; width: 100%; max-width: 28rem; margin-top: .75rem; }
+.communication .comm-recorder-length { margin: .35rem 0 0; font-size: .88rem; color: var(--muted); }
+.communication .comm-recorder .comm-coach-note { margin-bottom: 0; }
+.communication .comm-coach-spoken { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line-strong); }
+.communication .comm-coach-spoken h4 { margin: 0 0 .35rem; }
+.communication .comm-coach-metrics { max-width: 30rem; margin: .75rem 0; }
+.communication .comm-coach-head { flex-wrap: wrap; }
+.communication .comm-coach-modes { margin: 0 0 .75rem; }
+
 @media (max-width: 620px) {
   .communication .comm-lesson-grid { grid-template-columns: 1fr; }
   .communication .comm-coach-columns { grid-template-columns: 1fr; }

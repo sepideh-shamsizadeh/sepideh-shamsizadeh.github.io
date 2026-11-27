@@ -5,6 +5,7 @@ const localCalendar = new Intl.DateTimeFormat("en-CA", {
 export const MONTHLY_CAP = 3_000_000;
 export const DAILY_CAP = 10;
 export const MAX_CHALLENGES = 200;
+export const DAILY_TRANSCRIPTIONS = 20;
 const PENDING_MS = 120_000;
 const DUPLICATE_MS = 15 * 60_000;
 const MONTH_MS = 32 * 86_400_000;
@@ -40,6 +41,12 @@ export class Ledger {
       id TEXT PRIMARY KEY, created INTEGER NOT NULL, month TEXT NOT NULL, ledger INTEGER NOT NULL,
       reported INTEGER NOT NULL, adjustment INTEGER NOT NULL, latched INTEGER
     )`);
+    // Transcription accounting: counts, audio seconds and estimated Workers AI Neurons only.
+    query(`CREATE TABLE IF NOT EXISTS transcriptions (
+      id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, created INTEGER NOT NULL,
+      day TEXT NOT NULL, month TEXT NOT NULL, state TEXT NOT NULL, neurons INTEGER NOT NULL, seconds REAL
+    )`);
+    query("CREATE INDEX IF NOT EXISTS transcriptions_by_day ON transcriptions(day)");
     query("CREATE INDEX IF NOT EXISTS by_day ON evaluations(day)");
     query("CREATE INDEX IF NOT EXISTS by_month ON evaluations(month)");
     query("CREATE INDEX IF NOT EXISTS by_fingerprint ON evaluations(fingerprint, created)");
@@ -93,12 +100,44 @@ export class Ledger {
       FROM evaluations WHERE month = ?`, month)[0];
     const adjusted = this.query("SELECT COALESCE(SUM(cost),0) AS cost FROM adjustments WHERE month = ?", month)[0].cost;
     const monthly = monthRow.cost + adjusted;
+    const speech = this.query(`SELECT COUNT(*) AS used, COALESCE(SUM(neurons),0) AS neurons,
+      COALESCE(SUM(seconds),0) AS seconds FROM transcriptions WHERE day = ?`, day)[0];
     return {
       day, month, evaluationsToday: dayRow.used, remainingToday: Math.max(0, DAILY_CAP - dayRow.used),
       inputTokensToday: dayRow.input, outputTokensToday: dayRow.output,
       estimatedDailyMicros: dayRow.cost, estimatedMonthlyMicros: monthly,
-      reservedMonthlyMicros: monthRow.reserved, remainingMonthlyMicros: Math.max(0, MONTHLY_CAP - monthly)
+      reservedMonthlyMicros: monthRow.reserved, remainingMonthlyMicros: Math.max(0, MONTHLY_CAP - monthly),
+      transcriptionsToday: speech.used, remainingTranscriptionsToday: Math.max(0, DAILY_TRANSCRIPTIONS - speech.used),
+      audioSecondsToday: Math.round(speech.seconds), estimatedNeuronsToday: speech.neurons
     };
+  }
+
+  // Transcriptions are free (Workers AI Free allocation); the count cap keeps the reserved maximum
+  // (20 × 5 minutes) well inside the daily allocation. One request runs at a time.
+  reserveTranscription(id, fingerprint, now, neurons) {
+    return this.transaction(() => {
+      const [day, month] = period(now);
+      this.query("UPDATE transcriptions SET state = 'held' WHERE state = 'pending' AND created <= ?", now - PENDING_MS);
+      this.query("DELETE FROM transcriptions WHERE month < ? AND created < ?", month, now - MONTH_MS);
+      if (this.query("SELECT 1 FROM transcriptions WHERE id = ? OR (fingerprint = ? AND created > ?) LIMIT 1",
+        id, fingerprint, now - DUPLICATE_MS).length) return "duplicate";
+      if (this.query("SELECT 1 FROM transcriptions WHERE state = 'pending' OR created > ? LIMIT 1",
+        now - 2_000).length) return "rate";
+      if (!this.totals(now).remainingTranscriptionsToday) return "transcription_daily";
+      this.query("INSERT INTO transcriptions VALUES (?, ?, ?, ?, ?, 'pending', ?, NULL)",
+        id, fingerprint, now, day, month, neurons);
+      return "accepted";
+    });
+  }
+
+  // Without a reported duration the full reservation is kept.
+  settleTranscription(id, seconds, neurons) {
+    if (seconds === null) {
+      this.query("UPDATE transcriptions SET state = 'held' WHERE id = ? AND state = 'pending'", id);
+      return;
+    }
+    this.query(`UPDATE transcriptions SET state = 'settled', seconds = ?, neurons = ?
+      WHERE id = ? AND state IN ('pending','held')`, seconds, neurons, id);
   }
 
   reserve(id, fingerprint, now, cost) {

@@ -5,6 +5,9 @@
   const { skills } = progress;
   // Every usage limit, pause or provider-side quota problem reads the same to the learner.
   const unavailable = "AI evaluation is temporarily unavailable. Free Practice remains available.";
+  const speechUnavailable = "Transcription is temporarily unavailable. Recording and Free Practice remain available.";
+  const MAX_AUDIO_BYTES = 6 * 1024 * 1024;
+  const MAX_TRANSCRIPT_BYTES = 6000;
   const errors = {
     // Authentication outcomes are reported separately so the message matches what actually failed.
     session: "Your sign-in expired. Sign in again to evaluate.",
@@ -19,7 +22,21 @@
     provider: "The evaluation could not be completed. Your answer is still here.",
     timeout: "The evaluation took too long. Your answer is still here.",
     feedback: "The feedback was incomplete. Your answer is still here.",
-    follow_up: "This follow-up expired. Continue with the original question."
+    follow_up: "This follow-up expired. Continue with the original question.",
+    transcript: "Shorten the transcript to about 6,000 characters to evaluate it.",
+    audio: "This recording could not be read. Record again in this browser.",
+    audio_size: "This recording is too large to transcribe. Record a shorter answer.",
+    audio_length: "Recordings can be up to 5 minutes long.",
+    no_speech: "No speech was recognized. Check your microphone and record again.",
+    transcription: "The recording could not be transcribed. Try again in a moment.",
+    transcription_disabled: speechUnavailable, transcription_daily: speechUnavailable
+  };
+  // Codes shared with evaluation read differently when they come from transcription.
+  const transcriptionErrors = {
+    duplicate: "This recording was transcribed recently. Its transcript is shown below if you kept the page open.",
+    rate: "A transcription just finished. Try again in a moment.",
+    timeout: "Transcription took too long. Try again in a moment.",
+    unreachable: "The coach is unreachable. Your recording is still here."
   };
   // Extra detail for Google token failures. Reason codes name the failed check only.
   const tokenReasons = {
@@ -27,7 +44,7 @@
     expired: "Google's sign-in token had already expired. Check that this device's clock is correct.",
     not_yet_valid: "Google's sign-in token is not valid yet. Check that this device's clock is correct."
   };
-  let endpoint, auth, googleLoader, instance = 0, dispose, memorySession = null;
+  let endpoint, auth, googleLoader, instance = 0, dispose, refresh, memorySession = null;
   const memory = new Map();
 
   try {
@@ -54,26 +71,29 @@
     return node;
   }
 
-  async function api(path, { method = "GET", body, token = auth?.session } = {}) {
+  async function api(path, { method = "GET", body, audio, token = auth?.session } = {}) {
     const headers = {};
+    const speech = path.startsWith("/v1/transcriptions");
     if (token) headers.Authorization = "Bearer " + token;
     if (body) headers["Content-Type"] = "application/json";
+    if (audio) headers["Content-Type"] = audio.type;
     let response;
     try {
       response = await fetch(endpoint + path, {
-        method, headers, body: body ? JSON.stringify(body) : undefined,
+        method, headers, body: audio ? audio.blob : body ? JSON.stringify(body) : undefined,
         credentials: "omit", cache: "no-store", redirect: "error",
-        signal: AbortSignal.timeout(path.endsWith("/evaluations") ? 35_000 : 10_000)
+        signal: AbortSignal.timeout(speech ? 90_000 : path.endsWith("/evaluations") ? 35_000 : 10_000)
       });
     } catch {
-      throw new Error("The coach is unreachable. Your answer is still here.");
+      throw new Error(speech ? transcriptionErrors.unreachable : "The coach is unreachable. Your answer is still here.");
     }
     if (response.status === 204) return null;
     const value = await response.json().catch(() => null);
     if (!response.ok || !value) {
       if (value?.error === "session" && auth?.session === token) auth = null;
       const detail = value?.error === "google_token" ? tokenReasons[value.reason] : undefined;
-      throw new Error((detail ? detail + " " : "") + (errors[value?.error] ?? unavailable));
+      const message = (speech && transcriptionErrors[value?.error]) || errors[value?.error] || (speech ? speechUnavailable : unavailable);
+      throw new Error((detail ? detail + " " : "") + message);
     }
     return value;
   }
@@ -106,6 +126,8 @@
   const signedIn = () => Boolean(auth && auth.expires > Date.now());
   const score = value => value.toFixed(1);
   const money = micros => "$" + (micros / 1_000_000).toFixed(2);
+  const clock = seconds => Math.floor(seconds / 60) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
+  const bytes = text => new TextEncoder().encode(text).length;
 
   function details(parent, label, className) {
     const node = element("details", undefined, parent, className);
@@ -162,10 +184,23 @@
     const output = element("div", undefined, box);
     let result, initial = memoryKey ? memory.get(memoryKey) ?? null : null, followUp, config, busy = false;
     let input = answerInput;
+    // The transcript of the current recording. It lives only in this panel and is discarded with it.
+    let spoken = null;
+    const take = () => context.recording?.() ?? null;
+    function clearSpoken() {
+      spoken = null;
+      box.querySelector(".comm-coach-spoken")?.remove();
+    }
+    refresh = () => {
+      if (!active()) return;
+      if (spoken && spoken.recording !== take()) clearSpoken();
+      showControls();
+    };
     earlier.hidden = !initial;
     if (initial) earlier.textContent = `Earlier score in this session: ${score(initial.feedback.overall)} / 5. Evaluate your revision to compare.`;
 
     dispose = () => {
+      clearSpoken();
       result = initial = followUp = null;
       input = null;
       output.replaceChildren();
@@ -183,8 +218,13 @@
         button(controls, "Sign in to use AI feedback", signIn, "comm-coach-link");
         return;
       }
-      const evaluate = button(controls, busy ? "Evaluating…" : "Evaluate my answer", submit, "solid");
-      evaluate.disabled = busy;
+      const evaluate = button(controls, busy === "evaluate" ? "Evaluating…" : "Evaluate my answer", () => submit("written"), "solid");
+      evaluate.disabled = Boolean(busy);
+      const recording = take();
+      if (config.transcription && !followUp && recording && spoken?.recording !== recording) {
+        const transcribe = button(controls, busy === "transcribe" ? "Transcribing…" : "Transcribe recording", transcribeTake);
+        transcribe.disabled = Boolean(busy);
+      }
       button(controls, "Sign out", signOut, "comm-coach-link");
     }
 
@@ -195,8 +235,10 @@
       }
       note.hidden = false;
       note.textContent = config.mock
-        ? "Mock mode: sample feedback for testing. No answer leaves this site."
-        : "Evaluating sends your written answer to an external AI service (OpenAI). Answers and feedback are not saved.";
+        ? "Mock mode: sample feedback for testing. No answer or recording leaves this site."
+        : "Evaluating sends your written answer to an external AI service (OpenAI)." +
+          (config.transcription ? " Transcribing sends your recording to Cloudflare Workers AI, and evaluating a transcript sends it to OpenAI." : "") +
+          " Answers, recordings, transcripts and feedback are not saved.";
       if (config.mock && !summary.querySelector(".comm-coach-badge")) element("span", "Mock", summary, "comm-coach-badge");
     }
 
@@ -242,6 +284,7 @@
       memory.clear();
       earlier.hidden = true;
       result = initial = followUp = null;
+      clearSpoken();
       input = answerInput;
       output.replaceChildren();
       container.querySelector(".comm-coach-followup")?.remove();
@@ -255,15 +298,17 @@
       }
     }
 
-    async function submit() {
+    async function submit(mode) {
       if (!active() || busy) return;
-      const answer = input.value.trim();
-      if (!answer || new TextEncoder().encode(answer).length > 2400) {
-        showStatus(errors.answer);
-        input.focus();
+      const field = mode === "spoken" ? spoken?.input : input;
+      if (!field) return;
+      const answer = field.value.trim();
+      if (!answer || bytes(answer) > (mode === "spoken" ? MAX_TRANSCRIPT_BYTES : 2400)) {
+        showStatus(mode === "spoken" ? errors.transcript : errors.answer);
+        field.focus();
         return;
       }
-      if (result?.answer === answer) {
+      if (result?.answer === answer && result.mode === mode) {
         showStatus("Revise your answer before evaluating again.");
         return;
       }
@@ -273,18 +318,21 @@
         showControls();
         return;
       }
-      busy = true;
+      busy = "evaluate";
       showStatus("Evaluating…");
       showControls();
+      if (spoken?.evaluate) spoken.evaluate.disabled = true;
       const session = auth.session;
       try {
         const evaluated = await api("/v1/evaluations", {
           method: "POST", token: session,
-          body: { questionId: question.id, requestId: crypto.randomUUID(), answer, ...(followUp ? { followUp } : {}) }
+          body: { questionId: question.id, requestId: crypto.randomUUID(), answer,
+            ...(mode === "spoken" ? { mode: "spoken" } : followUp ? { followUp } : {}) }
         });
         if (!active() || auth?.session !== session) return;
-        initial ??= { ...evaluated, answer, at: new Date().toISOString() };
-        result = { ...evaluated, answer, at: new Date().toISOString() };
+        const entry = { ...evaluated, mode: evaluated.mode ?? mode, answer, at: new Date().toISOString() };
+        initial ??= entry;
+        result = entry;
         if (memoryKey && !followUp && !memory.has(memoryKey)) memory.set(memoryKey, initial);
         showStatus("");
         renderFeedback();
@@ -294,7 +342,73 @@
       } finally {
         busy = false;
         if (active()) showControls();
+        if (spoken?.evaluate) spoken.evaluate.disabled = false;
       }
+    }
+
+    async function transcribeTake() {
+      const recording = take();
+      if (!active() || busy || !recording) return;
+      if (recording.blob.size > MAX_AUDIO_BYTES) {
+        showStatus(errors.audio_size);
+        return;
+      }
+      if (!signedIn()) {
+        auth = null;
+        showStatus(errors.session);
+        showControls();
+        return;
+      }
+      busy = "transcribe";
+      showStatus("Transcribing… Long answers can take up to a minute.");
+      showControls();
+      const session = auth.session;
+      try {
+        const query = new URLSearchParams({ questionId: question.id, requestId: crypto.randomUUID() });
+        const value = await api("/v1/transcriptions?" + query, {
+          method: "POST", token: session, audio: { blob: recording.blob, type: recording.type || recording.blob.type }
+        });
+        if (!active() || auth?.session !== session || take() !== recording) return;
+        showStatus("");
+        renderSpoken(recording, value);
+      } catch (error) {
+        if (!active() || (auth && auth.session !== session)) return;
+        showStatus(error.message);
+      } finally {
+        busy = false;
+        if (active()) showControls();
+      }
+    }
+
+    // Transcript and timing from the original recognition. Editing the transcript never changes the metrics.
+    function renderSpoken(recording, value) {
+      clearSpoken();
+      const area = element("section", undefined, undefined, "comm-coach-spoken");
+      output.before(area);
+      const heading = element("h4", "Transcript", area);
+      heading.tabIndex = -1;
+      element("p", "Correct any recognition errors, then evaluate. The speech metrics below come from the original recording.", area, "comm-coach-note");
+      const label = element("label", "Transcript of your spoken answer", area);
+      const field = element("textarea", undefined, label);
+      field.rows = 6;
+      field.value = value.text;
+      const m = value.metrics;
+      const rows = element("dl", undefined, area, "comm-scores comm-coach-metrics");
+      for (const [term, text] of [
+        ["Duration", clock(m.duration)],
+        ["Speaking pace", m.wordsPerMinute === null ? "Too short to measure" : `${m.wordsPerMinute} words per minute`],
+        ["Pauses longer than 1 second", m.pauses ? `${m.pauses} · longest ${m.longestPause.toFixed(1)} s` : "None"],
+        ["Filler words (approximate)", String(m.fillers)]
+      ]) {
+        const row = element("div", undefined, rows);
+        element("dt", term, row);
+        element("dd", text, row);
+      }
+      element("p", "Recognition can miss hesitations, so filler counts are approximate. Pronunciation, accent, confidence and intonation are not assessed.", area, "comm-coach-note");
+      const acts = element("div", undefined, area, "acts");
+      const evaluate = button(acts, "Evaluate spoken answer", () => submit("spoken"), "solid");
+      spoken = { recording, input: field, evaluate };
+      heading.focus();
     }
 
     function save(review) {
@@ -304,7 +418,8 @@
           id: result.id, questionId: question.id, topic: question.topic, category: question.category,
           at: result.at, model: result.model, rubric: result.rubric, overall: result.feedback.overall,
           scores: Object.fromEntries(Object.keys(skills).map(key => [key, result.feedback.skills[key].score])),
-          reviewAt: review ? new Date(Date.now() + 86_400_000).toISOString() : null, mock: result.mock
+          reviewAt: review ? new Date(Date.now() + 86_400_000).toISOString() : null, mock: result.mock,
+          ...(result.mode === "spoken" ? { mode: "spoken" } : {})
         };
         progress.save(localStorage, entry);
         showStatus(review ? "Scores saved. This question is marked for review tomorrow." : "Scores saved.");
@@ -325,6 +440,7 @@
       element("span", "Overall", heading, "comm-coach-score-label");
       element("span", score(data.overall), heading, "comm-coach-score-value");
       element("span", "/ 5", heading, "comm-coach-score-scale");
+      if (result.mode === "spoken") element("span", "Spoken answer", head, "comm-coach-badge");
 
       // Priority first: the model returns at most three actions, already ordered by importance.
       if (data.actions.length) {
@@ -368,17 +484,22 @@
         followUp = result.followUp;
         const prompt = result.feedback.followUp;
         result = initial = null;
+        clearSpoken();
         container.querySelector(".comm-coach-followup")?.remove();
         const label = element("label", prompt, undefined, "comm-coach-followup");
         input = element("textarea", undefined, label);
         input.rows = 4;
         output.before(label);
         output.replaceChildren();
+        showControls();
         input.focus();
       });
 
       const actions = element("div", undefined, view, "acts comm-coach-actions");
-      button(actions, "Try again", () => input.focus());
+      button(actions, "Try again", () => {
+        const record = result.mode === "spoken" && container.closest("form")?.querySelector("#comm-recorder button");
+        (record || input).focus();
+      });
       if (initial.id !== result.id) button(actions, "Compare attempts", compare);
       button(actions, "Save scores", () => save(review.checked), "solid");
       const reviewLabel = element("label", undefined, actions, "comm-coach-check");
@@ -407,9 +528,10 @@
           } else element("p", "Skill scores are unchanged.", area);
         }
         const columns = element("div", undefined, area, "comm-coach-columns");
+        const modes = initial.mode === "spoken" || result.mode === "spoken";
         for (const [label, entry] of [["Earlier", initial], ["Revised", result]]) {
           const column = element("div", undefined, columns);
-          element("h5", `${label} · ${score(entry.feedback.overall)}`, column);
+          element("h5", `${label}${modes ? " · " + (entry.mode === "spoken" ? "spoken" : "written") : ""} · ${score(entry.feedback.overall)}`, column);
           element("p", entry.answer, column, "comm-answer");
         }
       }
@@ -450,6 +572,10 @@
           ["Evaluations today", `${usage.evaluationsToday} of ${daily}`],
           ["Estimated spend this month", `${money(usage.estimatedMonthlyMicros)} of ${money(monthly)}`],
           ["Tokens today", `${usage.inputTokensToday} in · ${usage.outputTokensToday} out`],
+          ...(Number.isInteger(usage.transcriptionsToday) ? [
+            ["Transcriptions today", `${usage.transcriptionsToday} of ${usage.transcriptionsToday + usage.remainingTranscriptionsToday}`],
+            ["Audio transcribed today", `${Math.round(usage.audioSecondsToday / 60)} min · free Workers AI allocation`]
+          ] : []),
           ...(usage.reservedMonthlyMicros ? [["Unsettled reservations", money(usage.reservedMonthlyMicros)]] : []),
           ...(usage.mock ? [["Mode", "Mock (no OpenAI calls)"]] : [])
         ]) {
@@ -490,25 +616,39 @@
       if (live.length) {
         const average = values => (values.reduce((sum, value) => sum + value, 0) / values.length);
         element("p", `${live.length} saved AI assessments · average ${score(average(live.map(row => row.overall)))} / 5`, section);
-        const averages = Object.fromEntries(Object.keys(skills).map(skill => {
-          const values = live.map(row => row.scores[skill]).filter(value => value !== null);
+        const averages = group => Object.fromEntries(Object.keys(skills).map(skill => {
+          const values = group.map(row => row.scores[skill]).filter(value => value !== null);
           return [skill, values.length ? Number(average(values).toFixed(1)) : null];
         }));
-        skillBars(details(section, "Average AI scores by skill"), averages);
+        // Written and spoken answers are scored on the same skills but reported separately.
+        const groups = [["Written", live.filter(row => row.mode !== "spoken")], ["Spoken", live.filter(row => row.mode === "spoken")]]
+          .filter(([, group]) => group.length);
+        if (groups.length > 1) {
+          const split = element("ul", undefined, section, "comm-coach-modes");
+          for (const [label, group] of groups) {
+            element("li", `${label} · ${group.length} saved · average ${score(average(group.map(row => row.overall)))} / 5`, split);
+          }
+        }
+        const bySkill = details(section, "Average AI scores by skill");
+        for (const [label, group] of groups) {
+          if (groups.length > 1) element("h4", label, bySkill);
+          skillBars(bySkill, averages(group));
+        }
         const questions = details(section, "AI scores by question", "comm-coach-questions");
         const items = element("ul", undefined, questions);
         for (const entry of progress.byQuestion(rows)) {
           const name = bank.find(q => q.id === entry.questionId)?.prompt ?? entry.questionId;
           const review = entry.reviewAt ? ` · review ${new Date(entry.reviewAt).toLocaleDateString()}` : "";
           element("li", `${name} · latest ${score(entry.latest)} · best ${score(entry.best)} · ` +
-            `${entry.attempts} ${entry.attempts === 1 ? "attempt" : "attempts"}${review}`, items);
+            `${entry.attempts} ${entry.attempts === 1 ? "attempt" : "attempts"}` +
+            `${entry.spoken ? ` (${entry.spoken} spoken)` : ""}${review}`, items);
         }
       }
       const attempts = element("ul", undefined, section, "comm-coach-history");
       for (const row of rows.slice().reverse()) {
         const name = bank.find(q => q.id === row.questionId)?.prompt ?? row.questionId;
         const line = element("li", undefined, attempts);
-        element("p", `${row.mock ? "Mock · " : ""}${name} · ${score(row.overall)} / 5 · ${new Date(row.at).toLocaleDateString()}` +
+        element("p", `${row.mock ? "Mock · " : ""}${row.mode === "spoken" ? "Spoken · " : ""}${name} · ${score(row.overall)} / 5 · ${new Date(row.at).toLocaleDateString()}` +
           (row.reviewAt ? ` · review ${new Date(row.reviewAt).toLocaleDateString()}` : ""), line);
         button(line, "Delete saved AI score", () => {
           try {
@@ -525,5 +665,8 @@
     showSettings(panel);
   }
 
-  window.DrillCoach = { mount, showProgress, clear: () => { instance++; dispose?.(); dispose = null; } };
+  window.DrillCoach = {
+    mount, showProgress, recordingChanged: () => refresh?.(),
+    clear: () => { instance++; dispose?.(); dispose = refresh = null; }
+  };
 })();

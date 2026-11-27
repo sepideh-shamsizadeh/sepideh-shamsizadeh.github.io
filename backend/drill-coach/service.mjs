@@ -1,6 +1,10 @@
 import catalog from "./catalog.json" with { type: "json" };
-import { MAX_ANSWER_BYTES, buildEvaluation, feedbackFor, mockOpenAI, requestOpenAI, usageFor } from "./evaluation.mjs";
+import { MAX_ANSWER_BYTES, MAX_TRANSCRIPT_BYTES, buildEvaluation, feedbackFor, mockOpenAI, requestOpenAI, usageFor } from "./evaluation.mjs";
 import { digest, keyed, openFollowUp, randomToken, sealFollowUp, verifyGoogle } from "./identity.mjs";
+import {
+  MAX_AUDIO_SECONDS, RESERVE_NEURONS, audioType, mockTranscription, neuronsFor, readAudio, speechMetrics,
+  transcribe, vocabulary
+} from "./transcription.mjs";
 
 const encoder = new TextEncoder();
 const methods = "GET, POST, DELETE, OPTIONS";
@@ -10,8 +14,11 @@ const routes = {
   "POST /v1/auth/session": true,
   "DELETE /v1/auth/session": true,
   "GET /v1/usage": true,
-  "POST /v1/evaluations": true
+  "POST /v1/evaluations": true,
+  "POST /v1/transcriptions": true
 };
+const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const sample = 64 * 1024;
 
 export function reply(status, body, origin) {
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", Vary: "Origin" };
@@ -115,8 +122,10 @@ export async function handle(request, env, ledger, options = {}) {
     typeof env.GOOGLE_CLIENT_ID === "string" && Boolean(env.GOOGLE_CLIENT_ID) &&
     typeof env.DEDUPE_SECRET === "string" && env.DEDUPE_SECRET.length >= 32 &&
     (mode !== "live" || (typeof env.OPENAI_API_KEY === "string" && Boolean(env.OPENAI_API_KEY)));
+  // Transcription has its own switch so voice can be paused while written evaluation stays on.
+  const speech = ready && env.TRANSCRIPTION === "on" && (mode === "mock" || typeof env.AI?.run === "function");
   if (route === "GET /v1/config") return respond(200, {
-    enabled: ready, mock: mode === "mock", googleClientId: ready ? env.GOOGLE_CLIENT_ID : null
+    enabled: ready, mock: mode === "mock", googleClientId: ready ? env.GOOGLE_CLIENT_ID : null, transcription: speech
   });
   if (!ready) return error(503, "disabled");
 
@@ -156,23 +165,28 @@ export async function handle(request, env, ledger, options = {}) {
     return respond(204);
   }
   if (route === "GET /v1/usage") return respond(200, { ...ledger.totals(now), mock: mode === "mock" });
+  if (route === "POST /v1/transcriptions") return transcription(request, env, ledger, options, respond, speech);
 
   const fields = await json(request);
   if (!fields || typeof fields.answer !== "string" || typeof fields.questionId !== "string" ||
-    typeof fields.requestId !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(fields.requestId) ||
+    typeof fields.requestId !== "string" || !uuid.test(fields.requestId) ||
     !Object.hasOwn(catalog, fields.questionId) || Object.keys(fields).some(key =>
-      !["questionId", "requestId", "answer", "followUp"].includes(key))) return error(400, "invalid");
+      !["questionId", "requestId", "answer", "followUp", "mode"].includes(key)) ||
+    ![undefined, "written", "spoken"].includes(fields.mode)) return error(400, "invalid");
+  const answerMode = fields.mode ?? "written";
   const answer = fields.answer.trim();
-  if (!answer || encoder.encode(answer).length > MAX_ANSWER_BYTES) return error(400, "answer");
+  if (!answer || encoder.encode(answer).length > (answerMode === "spoken" ? MAX_TRANSCRIPT_BYTES : MAX_ANSWER_BYTES)) {
+    return error(400, answerMode === "spoken" ? "transcript" : "answer");
+  }
   const exercise = catalog[fields.questionId];
   let prompt = exercise.prompt;
   if (fields.followUp !== undefined) {
     prompt = await openFollowUp(fields.followUp, fields.questionId, now, secret);
     if (!prompt) return error(400, "follow_up");
   }
-  const evaluation = buildEvaluation({ model: env.OPENAI_MODEL, exercise, prompt, answer });
+  const evaluation = buildEvaluation({ model: env.OPENAI_MODEL, exercise, prompt, answer, mode: answerMode });
   if (!evaluation) return error(503, "configuration");
-  const fingerprint = await keyed(JSON.stringify([fields.questionId, prompt, answer]), secret);
+  const fingerprint = await keyed(JSON.stringify([fields.questionId, prompt, answer, answerMode]), secret);
   const requestId = fields.requestId.toLowerCase();
   const decision = ledger.reserve(requestId, fingerprint, (options.now ?? Date.now)(), evaluation.reserveCost);
   if (decision !== "accepted") return error(decision === "duplicate" ? 409 : decision === "disabled" ? 503 : 429, decision);
@@ -194,8 +208,56 @@ export async function handle(request, env, ledger, options = {}) {
   const feedback = feedbackFor(result.envelope, evaluation);
   if (!feedback || !usage) return error(502, "feedback");
   return respond(200, {
-    id: requestId, rubric: 1, model: evaluation.model, mock: mode === "mock", feedback,
+    id: requestId, rubric: 1, mode: answerMode, model: evaluation.model, mock: mode === "mock", feedback,
     followUp: await sealFollowUp(fields.questionId, feedback.followUp, now, secret),
     usage: ledger.totals((options.now ?? Date.now)())
   });
+}
+
+// Owner-only speech-to-text. The recording is read into memory, checked, transcribed, and discarded.
+// Only the request ID, a keyed fingerprint, the reported duration, and estimated Neurons are recorded.
+async function transcription(request, env, ledger, options, respond, enabled) {
+  const error = (status, code) => respond(status, { error: code });
+  if (!enabled) return error(503, "transcription_disabled");
+  const query = new URL(request.url).searchParams;
+  const questionId = query.get("questionId"), requestId = query.get("requestId");
+  if ([...query.keys()].some(key => !["questionId", "requestId"].includes(key)) ||
+    !questionId || !Object.hasOwn(catalog, questionId) || !requestId || !uuid.test(requestId)) return error(400, "invalid");
+  const type = audioType(request.headers.get("Content-Type"));
+  if (!type) return error(415, "audio");
+  const audio = await readAudio(request, type);
+  if (audio.error) return error(audio.error === "audio_size" ? 413 : 400, audio.error);
+  const { bytes } = audio;
+  // Catches an accidental resubmission of the same recording without hashing the whole file.
+  const edges = new Uint8Array(Math.min(bytes.length, 2 * sample));
+  edges.set(bytes.subarray(0, Math.min(bytes.length, sample)));
+  if (bytes.length > sample) edges.set(bytes.subarray(-Math.min(bytes.length - sample, sample)), sample);
+  const edgeHash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", edges))]
+    .map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const fingerprint = await keyed(JSON.stringify([questionId, bytes.length, edgeHash]), env.DEDUPE_SECRET);
+  const id = requestId.toLowerCase();
+  const now = options.now ?? Date.now;
+  const decision = ledger.reserveTranscription(id, fingerprint, now(), RESERVE_NEURONS);
+  if (decision !== "accepted") return error(decision === "duplicate" ? 409 : 429, decision);
+
+  const exercise = catalog[questionId];
+  let output;
+  try {
+    output = await (env.COACH_MODE === "mock" ? (options.transcriber ?? mockTranscription)(exercise) :
+      (options.transcriber ?? transcribe)(env.AI, bytes, request.headers.get("Content-Type"), vocabulary(exercise)));
+  } catch {
+    // The call may have consumed Neurons, so the full reservation stays counted.
+    ledger.settleTranscription(id, null);
+    return error(502, "transcription");
+  }
+  const metrics = speechMetrics(output);
+  if (!metrics) {
+    ledger.settleTranscription(id, null);
+    return error(502, "transcription");
+  }
+  ledger.settleTranscription(id, metrics.duration, neuronsFor(metrics.duration));
+  if (metrics.duration > MAX_AUDIO_SECONDS + 0.5) return error(413, "audio_length");
+  const text = typeof output.text === "string" ? output.text.trim() : "";
+  if (!text) return error(422, "no_speech");
+  return respond(200, { id, mock: env.COACH_MODE === "mock", text, metrics, usage: ledger.totals(now()) });
 }
