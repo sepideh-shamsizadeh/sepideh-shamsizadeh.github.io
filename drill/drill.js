@@ -292,6 +292,14 @@ k8:[
 ]};
 const CARDS=[];for(const t in D)D[t].forEach((x,i)=>CARDS.push({id:t+i,t,q:x[0],a:x[1]}));
 
+const communication = document.getElementById("communication");
+if (communication) {
+  communication.dispatchEvent(new CustomEvent("drill:question-bank", {
+    detail: { cards: CARDS, topics: TOP }
+  }));
+}
+
+if (document.getElementById("today")) {
 const PROBS={
 pt:{n:"PyTorch / DL",c:"#d99a00",l:[
 ["Linear regression with autograd only","Fit y = 3x + 2 + noise using only tensors with requires_grad=True. No nn.Module, no optimizer.",["Make 200 points.","Write the forward pass and MSE loss.","Call backward, update w and b inside torch.no_grad(), zero the grads."],"w is close to 3 and b close to 2."],
@@ -559,4 +567,5 @@ const SRC=[...new Set(Object.values(TOP).map(t=>t.u).filter(Boolean))].concat(["
 $("src").innerHTML=SRC.map(u=>`<li><a href="${u}" target="_blank" rel="noopener">${u.replace(/^https:\/\/(www\.)?/,"")}</a></li>`).join("");
 
 chips();pChips();next();showProb();drawTrk();
+}
 }
