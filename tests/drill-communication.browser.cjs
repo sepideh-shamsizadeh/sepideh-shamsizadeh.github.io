@@ -191,8 +191,8 @@ test("versioned assets initialize; every filter, practice controls and saved pro
     await view(page, "Progress");
     await contrast(page.locator(".comm-table th").first());
     assert.ok(await page.getByText("Average self-assessment", { exact: true }).first().isVisible());
-    assert.equal((await saved(page)).attempts[0].answer, "My <answer>");
-    assert.equal((await saved(page)).attempts[0].notes, "Practice the example");
+    assert.equal((await saved(page)).attempts[0].answer, undefined);
+    assert.equal((await saved(page)).attempts[0].notes, undefined);
     await page.getByRole("button", { name: /Explain bounding-box overlap/ }).click();
     assert.match(await prompt(page), /bounding-box overlap/);
   });

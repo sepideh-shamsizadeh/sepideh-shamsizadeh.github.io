@@ -31,6 +31,7 @@
   let draft = {};
   let draftKey = "";
   const drafts = new Map();
+  const reviewText = new Map();
 
   function announce(message) {
     status.textContent = message;
@@ -255,9 +256,11 @@
         return;
       }
       if (!persist(data => model.recordAttempt(data, attempt, session))) return;
+      if (session && !step.review) reviewText.set(`${session.id}:${current.id}`, { answer: attempt.answer, notes: attempt.notes });
       resetExercise("");
       announce(step?.review ? "Session complete. Your self-assessments have been saved." : "Self-assessment saved.");
       if (session) {
+        if (step.review) reviewText.clear();
         render();
         (panel.querySelector("#comm-prompt") ?? panel.querySelector("[data-heading]")).focus();
       } else nextQuestion(true);
@@ -287,13 +290,15 @@
           <p>Saved attempts will still count toward your progress.</p>
           <button type="button" id="comm-end">End session</button>
         </details>`;
-      renderExercise(bank.find(q => q.id === (prior?.questionId ?? step.questionId)), session, prior);
+      const text = prior && reviewText.get(`${session.id}:${prior.questionId}`);
+      renderExercise(bank.find(q => q.id === (prior?.questionId ?? step.questionId)), session, prior && { ...prior, ...text });
       panel.querySelector("#comm-end").onclick = () => {
         if (!persist(data => {
           if (data.active?.id !== session.id || data.active.index !== session.index) throw new Error("Session changed");
           data.active = null;
         })) return;
         resetExercise("");
+        reviewText.clear();
         announce("Session ended.");
         render(true);
       };
