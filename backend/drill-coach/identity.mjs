@@ -25,37 +25,59 @@ export async function keyed(value, secret) {
   return base64(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))));
 }
 
+// Google's signing keys. Cloudflare Workers reject `redirect: "error"`, so use "manual":
+// any redirect arrives as a non-2xx response and is treated as a failure.
+async function googleKeys(now, fetcher, refresh = false) {
+  if (!refresh && cache && cache.expires > now && cache.fetcher === fetcher) return { keys: cache.keys, fresh: false };
+  const response = await fetcher(hostname, { signal: AbortSignal.timeout(4000), redirect: "manual" });
+  if (!response.ok) return null;
+  const body = await response.json();
+  if (!Array.isArray(body.keys)) return null;
+  const ttl = Number(response.headers.get("Cache-Control")?.match(/max-age=(\d+)/)?.[1] ?? 60);
+  cache = { keys: body.keys, expires: now + Math.min(ttl, 3600) * 1000, fetcher };
+  return { keys: body.keys, fresh: true };
+}
+
+// Returns { sub, nonce } for a valid Google ID token, or { error } with a non-sensitive reason code.
+// Reason codes name the failed check only; tokens and claim values are never echoed.
 export async function verifyGoogle(token, { client, now, fetcher = fetch }) {
+  const fail = error => ({ error });
+  let header, claims, head, body, signature;
   try {
     const parts = token.split(".");
-    if (parts.length !== 3 || token.length > 7000) return null;
-    const [head, body, signature] = parts;
-    const header = JSON.parse(decoder.decode(decode(head)));
-    const claims = JSON.parse(decoder.decode(decode(body)));
-    if (header.alg !== "RS256" || typeof header.kid !== "string" || header.kid.length > 100 ||
-      !["https://accounts.google.com", "accounts.google.com"].includes(claims.iss) ||
-      claims.aud !== client || (claims.azp !== undefined && claims.azp !== client) ||
-      !Number.isInteger(claims.exp) || claims.exp <= now / 1000 ||
-      !Number.isInteger(claims.iat) || claims.iat > now / 1000 + 60 ||
-      (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > now / 1000)) ||
-      typeof claims.sub !== "string" || !/^\d{1,64}$/.test(claims.sub) ||
-      typeof claims.nonce !== "string" || !/^[a-zA-Z0-9_-]{43}$/.test(claims.nonce)) return null;
-    if (!cache || cache.expires <= now || cache.fetcher !== fetcher) {
-      const response = await fetcher(hostname, { signal: AbortSignal.timeout(4000), redirect: "error" });
-      if (!response.ok) return null;
-      const body = await response.json();
-      if (!Array.isArray(body.keys)) return null;
-      const ttl = Number(response.headers.get("Cache-Control")?.match(/max-age=(\d+)/)?.[1] ?? 60);
-      cache = { keys: body.keys, expires: now + Math.min(ttl, 3600) * 1000, fetcher };
+    if (parts.length !== 3 || token.length > 7000) return fail("format");
+    [head, body, signature] = parts;
+    header = JSON.parse(decoder.decode(decode(head)));
+    claims = JSON.parse(decoder.decode(decode(body)));
+  } catch {
+    return fail("format");
+  }
+  if (header?.alg !== "RS256" || typeof header.kid !== "string" || header.kid.length > 100) return fail("format");
+  if (!["https://accounts.google.com", "accounts.google.com"].includes(claims?.iss)) return fail("issuer");
+  if (claims.aud !== client || (claims.azp !== undefined && claims.azp !== client)) return fail("audience");
+  if (!Number.isInteger(claims.exp) || claims.exp <= now / 1000) return fail("expired");
+  if (!Number.isInteger(claims.iat) || claims.iat > now / 1000 + 60 ||
+    (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > now / 1000))) return fail("not_yet_valid");
+  if (typeof claims.sub !== "string" || !/^\d{1,64}$/.test(claims.sub)) return fail("subject");
+  if (typeof claims.nonce !== "string" || !/^[a-zA-Z0-9_-]{43}$/.test(claims.nonce)) return fail("nonce_format");
+  try {
+    let set = await googleKeys(now, fetcher);
+    if (!set) return fail("keys_unavailable");
+    const match = keys => keys.find(key => key.kid === header.kid && key.kty === "RSA" && key.alg === "RS256");
+    let jwk = match(set.keys);
+    if (!jwk && !set.fresh) {
+      // Google rotates keys; refresh once if the token names a key we have not cached.
+      set = await googleKeys(now, fetcher, true);
+      if (!set) return fail("keys_unavailable");
+      jwk = match(set.keys);
     }
-    const jwk = cache.keys.find(key => key.kid === header.kid && key.kty === "RSA" && key.alg === "RS256");
-    if (!jwk) return null;
+    if (!jwk) return fail("unknown_key");
     const algorithm = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
     const key = await crypto.subtle.importKey("jwk", jwk, algorithm, false, ["verify"]);
     const valid = await crypto.subtle.verify(algorithm, key, decode(signature), encoder.encode(head + "." + body));
-    return valid ? { sub: claims.sub, nonce: claims.nonce } : null;
+    return valid ? { sub: claims.sub, nonce: claims.nonce } : fail("signature");
   } catch {
-    return null;
+    return fail("keys_unavailable");
   }
 }
 

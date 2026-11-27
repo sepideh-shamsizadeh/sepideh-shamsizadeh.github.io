@@ -111,7 +111,8 @@ export function feedbackFor(envelope, evaluation) {
 export async function requestOpenAI(evaluation, key, fetcher = fetch) {
   const response = await fetcher("https://api.openai.com/v1/responses", {
     method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-    body: evaluation.body, signal: AbortSignal.timeout(25_000), redirect: "error"
+    // Workers reject redirect "error"; with "manual" a redirect is a non-2xx response and fails closed.
+    body: evaluation.body, signal: AbortSignal.timeout(25_000), redirect: "manual"
   });
   const envelope = await response.json().catch(() => null);
   return { status: response.status, envelope };

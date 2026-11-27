@@ -135,20 +135,22 @@ export async function handle(request, env, ledger, options = {}) {
     const fields = await json(request);
     if (!fields || typeof fields.credential !== "string" || fields.credential.length > 7000) return error(400, "invalid");
     const claims = await (options.verify ?? verifyGoogle)(fields.credential, { client: env.GOOGLE_CLIENT_ID, now });
-    if (!claims) return error(401, "auth");
+    // Distinct, non-sensitive codes: the reason names the failed check, never a claim value or token.
+    if (!claims || claims.error === "keys_unavailable") return error(503, "verifier");
+    if (claims.error) return respond(401, { error: "google_token", reason: claims.error });
     if (claims.sub !== owner) return error(403, "owner");
     const session = randomToken();
     const expires = now + 30 * 60_000;
     if (!ledger.useChallenge(await digest(claims.nonce), now, await digest(session), owner, expires)) {
-      return error(401, "auth");
+      return error(401, "nonce");
     }
     return respond(200, { session, expires });
   }
 
   const bearer = request.headers.get("Authorization")?.match(/^Bearer ([a-zA-Z0-9_-]{43})$/)?.[1];
-  if (!bearer) return error(401, "auth");
+  if (!bearer) return error(401, "session");
   const token = await digest(bearer);
-  if (!ledger.session(token, owner, now)) return error(401, "auth");
+  if (!ledger.session(token, owner, now)) return error(401, "session");
   if (route === "DELETE /v1/auth/session") {
     ledger.revoke(token);
     return respond(204);

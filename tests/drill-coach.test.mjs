@@ -48,26 +48,40 @@ const answer = (text = "I explain the idea with an example.") => ({
 
 test("owner-only authorization, nonce replay, logout, expiry and emergency mode", async () => {
   const { send, login, advance } = setup();
-  assert.equal((await send("/v1/evaluations", "POST", { body: answer() })).status, 401);
+  const code = async response => [response.status, (await response.json()).error];
+  assert.deepEqual(await code(await send("/v1/evaluations", "POST", { body: answer() })), [401, "session"]);
   assert.equal((await send("/v1/config", "GET", { site: "https://other.example" })).status, 403);
   assert.equal((await send("/v1/evaluations", "POST", { env: { ...base, COACH_MODE: "off" } })).status, 503);
   const { session, options } = await login();
   const other = { verify: async () => ({ sub: "000", nonce: "irrelevant" }) };
-  assert.equal((await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options: other })).status, 403);
-  assert.equal((await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options })).status, 401);
+  assert.deepEqual(await code(await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options: other })), [403, "owner"]);
+  // Replaying a consumed nonce is reported as a nonce failure, not as an expired session.
+  assert.deepEqual(await code(await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options })), [401, "nonce"]);
+  const badToken = { verify: async () => ({ error: "audience" }) };
+  const rejected = await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options: badToken });
+  assert.equal(rejected.status, 401);
+  assert.deepEqual(await rejected.json(), { error: "google_token", reason: "audience" });
+  const noKeys = { verify: async () => ({ error: "keys_unavailable" }) };
+  assert.deepEqual(await code(await send("/v1/auth/session", "POST", { body: { credential: "fake" }, options: noKeys })), [503, "verifier"]);
   assert.equal((await send("/v1/usage", "GET", { session })).status, 200);
   assert.equal((await send("/v1/auth/session", "DELETE", { session })).status, 204);
-  assert.equal((await send("/v1/usage", "GET", { session })).status, 401);
+  assert.deepEqual(await code(await send("/v1/usage", "GET", { session })), [401, "session"]);
   const fresh = await login();
   advance(30 * 60_000);
-  assert.equal((await send("/v1/usage", "GET", { session: fresh.session })).status, 401);
+  assert.deepEqual(await code(await send("/v1/usage", "GET", { session: fresh.session })), [401, "session"]);
 });
 
 test("Google token validation verifies RS256, issuer, audience, expiry and signature", async () => {
   const algorithm = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256", modulusLength: 2048, publicExponent: Uint8Array.of(1, 0, 1) };
   const { publicKey, privateKey } = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"]);
   const jwk = { ...(await crypto.subtle.exportKey("jwk", publicKey)), kid: "unit-test", alg: "RS256" };
-  const fetcher = async () => Response.json({ keys: [jwk] });
+  // Behaves like Cloudflare Workers fetch, which throws on redirect "error".
+  let fetches = 0;
+  const fetcher = async (url, init) => {
+    assert.ok(["follow", "manual"].includes(init.redirect), "Workers only support follow or manual redirects");
+    fetches++;
+    return Response.json({ keys: [jwk] });
+  };
   const header = Buffer.from(JSON.stringify({ alg: "RS256", kid: jwk.kid })).toString("base64url");
   const seconds = time / 1000;
   const nonce = "A".repeat(43);
@@ -80,13 +94,34 @@ test("Google token validation verifies RS256, issuer, audience, expiry and signa
   }
   const options = { client: base.GOOGLE_CLIENT_ID, now: time, fetcher };
   assert.deepEqual(await verifyGoogle(await token(), options), { sub: base.OWNER_GOOGLE_SUB, nonce });
-  for (const claims of [{ aud: "other" }, { exp: seconds }, { iss: "https://example.org" }, { nonce: "bad" }]) {
-    assert.equal(await verifyGoogle(await token(claims), options), null);
+  for (const [claims, reason] of [[{ aud: "other" }, "audience"], [{ azp: "other" }, "audience"], [{ exp: seconds }, "expired"],
+    [{ iat: seconds + 3600 }, "not_yet_valid"], [{ iss: "https://example.org" }, "issuer"], [{ nonce: "bad" }, "nonce_format"],
+    [{ sub: "not-digits" }, "subject"]]) {
+    assert.deepEqual(await verifyGoogle(await token(claims), options), { error: reason });
   }
+  assert.deepEqual(await verifyGoogle("not.a.jwt", options), { error: "format" });
   const valid = await token();
   const parts = valid.split(".");
   parts[2] = (parts[2][0] === "a" ? "b" : "a") + parts[2].slice(1);
-  assert.equal(await verifyGoogle(parts.join("."), options), null);
+  assert.deepEqual(await verifyGoogle(parts.join("."), options), { error: "signature" });
+  // Unreachable keys are distinguished from invalid tokens.
+  const down = { ...options, now: time + 7_200_000, fetcher: async () => new Response("", { status: 503 }) };
+  assert.deepEqual(await verifyGoogle(await token({ exp: seconds + 9000 }), down), { error: "keys_unavailable" });
+  // A key missing from the cache triggers exactly one refresh (Google key rotation).
+  let rotated = false;
+  const rotating = async (url, init) => {
+    assert.equal(init.redirect, "manual");
+    const keys = rotated ? [jwk] : [{ ...jwk, kid: "old-key" }];
+    rotated = true;
+    return Response.json({ keys }, { headers: { "Cache-Control": "max-age=3600" } });
+  };
+  const later = { client: base.GOOGLE_CLIENT_ID, now: time + 10_000_000, fetcher: rotating };
+  const fresh = await token({ iat: (time + 10_000_000) / 1000 - 1, exp: (time + 10_000_000) / 1000 + 100 });
+  // First call caches the pre-rotation key set; the token names a key it lacks, so it is rejected.
+  assert.deepEqual(await verifyGoogle(fresh, later), { error: "unknown_key" });
+  // Within the cache TTL, a token naming an uncached key forces one refresh, which finds the new key.
+  assert.deepEqual(await verifyGoogle(fresh, later), { sub: base.OWNER_GOOGLE_SUB, nonce });
+  assert.ok(fetches >= 1);
 });
 
 test("input limits, structured output, signed follow-up and no answer persistence", async () => {
@@ -168,6 +203,7 @@ test("provider failure holds budget, malformed output settles usage and unexpect
   const malformed = await send("/v1/evaluations", "POST", { env, session, body: answer("malformed"),
     options: { fetcher: async (url, request) => {
       assert.equal(url, "https://api.openai.com/v1/responses");
+      assert.equal(request.redirect, "manual", "Workers reject redirect \"error\"");
       const payload = JSON.parse(request.body);
       assert.equal(payload.store, false);
       assert.equal(payload.tools, undefined);

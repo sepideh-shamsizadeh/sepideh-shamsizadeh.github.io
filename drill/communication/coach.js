@@ -4,7 +4,11 @@
   if (!root || !progress) return;
   const { skills } = progress;
   const errors = {
-    auth: "Your sign-in expired. Sign in again to evaluate.",
+    // Authentication outcomes are reported separately so the message matches what actually failed.
+    session: "Your sign-in expired. Sign in again to evaluate.",
+    google_token: "Google sign-in could not be verified. Sign in again.",
+    nonce: "This sign-in attempt timed out or was already used. Choose Set up Google Sign-In and try again.",
+    verifier: "Google's sign-in service could not be reached to verify your account. Try again in a moment.",
     owner: "This coach is limited to the authorized account.",
     disabled: "The AI Coach is paused. You can still use Free Practice.",
     answer: "Enter a written answer of at most 2,400 UTF-8 bytes.",
@@ -18,6 +22,12 @@
     timeout: "The request timed out. Usage may still count. Your answer is still here.",
     feedback: "The evaluation returned incomplete feedback. Your answer is still here.",
     follow_up: "This follow-up expired. You can continue with the original question."
+  };
+  // Extra detail for Google token failures. Reason codes name the failed check only.
+  const tokenReasons = {
+    audience: "Google issued the sign-in for a different OAuth client than the coach expects.",
+    expired: "Google's sign-in token had already expired. Check that this device's clock is correct.",
+    not_yet_valid: "Google's sign-in token is not valid yet. Check that this device's clock is correct."
   };
   let endpoint, auth, googleLoader, instance = 0, dispose, memorySession = null;
   const memory = new Map();
@@ -63,8 +73,10 @@
     if (response.status === 204) return null;
     const value = await response.json().catch(() => null);
     if (!response.ok || !value) {
-      if (value?.error === "auth" && auth?.session === token) auth = null;
-      throw new Error(errors[value?.error] ?? "The coach is unavailable. You can continue in Free Practice.");
+      if (value?.error === "session" && auth?.session === token) auth = null;
+      const detail = value?.error === "google_token" ? tokenReasons[value.reason] : undefined;
+      throw new Error((detail ? detail + " " : "") +
+        (errors[value?.error] ?? "The coach is unavailable. You can continue in Free Practice."));
     }
     return value;
   }
@@ -256,7 +268,7 @@
       }
       if (!signedIn()) {
         auth = null;
-        showStatus(errors.auth);
+        showStatus(errors.session);
         showControls();
         return;
       }
