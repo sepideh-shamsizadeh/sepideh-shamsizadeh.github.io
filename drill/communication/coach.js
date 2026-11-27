@@ -3,25 +3,23 @@
   const progress = window.DrillCoachProgress;
   if (!root || !progress) return;
   const { skills } = progress;
+  // Every usage limit, pause or provider-side quota problem reads the same to the learner.
+  const unavailable = "AI evaluation is temporarily unavailable. Free Practice remains available.";
   const errors = {
     // Authentication outcomes are reported separately so the message matches what actually failed.
     session: "Your sign-in expired. Sign in again to evaluate.",
     google_token: "Google sign-in could not be verified. Sign in again.",
-    nonce: "This sign-in attempt timed out or was already used. Choose Set up Google Sign-In and try again.",
-    verifier: "Google's sign-in service could not be reached to verify your account. Try again in a moment.",
-    owner: "This coach is limited to the authorized account.",
-    disabled: "The AI Coach is paused. You can still use Free Practice.",
-    answer: "Enter a written answer of at most 2,400 UTF-8 bytes.",
-    duplicate: "This answer was already submitted recently. Revise it before trying again.",
-    rate: "An evaluation is in progress or finished just now. Try again shortly.",
-    daily: "Today's 10-evaluation limit has been reached.",
-    budget: "There is insufficient budget for this evaluation.",
-    credits: "OpenAI reported insufficient credits. Free Practice remains available.",
-    provider_limit: "OpenAI is rate limited or its credits are unavailable.",
-    provider: "OpenAI could not complete the evaluation. Your answer is still here.",
-    timeout: "The request timed out. Usage may still count. Your answer is still here.",
-    feedback: "The evaluation returned incomplete feedback. Your answer is still here.",
-    follow_up: "This follow-up expired. You can continue with the original question."
+    nonce: "This sign-in attempt timed out or was already used. Sign in again.",
+    verifier: "Google's sign-in service could not be reached. Try again in a moment.",
+    owner: "AI feedback is limited to the site owner's account.",
+    disabled: unavailable, daily: unavailable, budget: unavailable, credits: unavailable, provider_limit: unavailable,
+    answer: "Write an answer of up to about 2,400 characters to evaluate.",
+    duplicate: "This answer was evaluated recently. Revise it before trying again.",
+    rate: "An evaluation just finished. Try again in a moment.",
+    provider: "The evaluation could not be completed. Your answer is still here.",
+    timeout: "The evaluation took too long. Your answer is still here.",
+    feedback: "The feedback was incomplete. Your answer is still here.",
+    follow_up: "This follow-up expired. Continue with the original question."
   };
   // Extra detail for Google token failures. Reason codes name the failed check only.
   const tokenReasons = {
@@ -41,17 +39,17 @@
     // The public frontend stays usable before an API URL is configured.
   }
 
-  function element(tag, text, parent) {
+  function element(tag, text, parent, className) {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
     parent?.append(node);
     return node;
   }
 
-  function button(parent, label, action, solid = false) {
-    const node = element("button", label, parent);
+  function button(parent, label, action, className) {
+    const node = element("button", label, parent, className);
     node.type = "button";
-    if (solid) node.className = "solid";
     node.onclick = action;
     return node;
   }
@@ -75,8 +73,7 @@
     if (!response.ok || !value) {
       if (value?.error === "session" && auth?.session === token) auth = null;
       const detail = value?.error === "google_token" ? tokenReasons[value.reason] : undefined;
-      throw new Error((detail ? detail + " " : "") +
-        (errors[value?.error] ?? "The coach is unavailable. You can continue in Free Practice."));
+      throw new Error((detail ? detail + " " : "") + (errors[value?.error] ?? unavailable));
     }
     return value;
   }
@@ -93,7 +90,7 @@
           clearTimeout(timer);
           googleLoader = null;
           script.remove();
-          reject(new Error("Google Sign-In could not load. You can continue in Free Practice."));
+          reject(new Error("Google Sign-In could not load. Free Practice remains available."));
         }
         script.onload = () => {
           clearTimeout(timer);
@@ -106,34 +103,47 @@
     return googleLoader;
   }
 
-  const money = micros => "$" + (micros / 1_000_000).toFixed(3);
-  function details(parent, label) {
-    const node = element("details", undefined, parent);
+  const signedIn = () => Boolean(auth && auth.expires > Date.now());
+  const score = value => value.toFixed(1);
+  const money = micros => "$" + (micros / 1_000_000).toFixed(2);
+
+  function details(parent, label, className) {
+    const node = element("details", undefined, parent, className);
     element("summary", label, node);
     return node;
   }
-  function meter(parent, label, value, max, text) {
-    const row = element("label", undefined, parent);
-    row.className = "comm-coach-meter";
-    element("span", `${label} · ${text}`, row);
-    const bar = element("meter", undefined, row);
-    bar.min = 0;
-    bar.max = Math.max(1, max);
-    bar.value = Math.min(value, bar.max);
-    bar.high = bar.max * 0.8;
-    bar.optimum = 0;
-    return bar;
-  }
-  function list(parent, title, values) {
-    if (!values.length) return;
+
+  function list(parent, title, values, ordered = false) {
+    if (!values?.length) return;
     element("h4", title, parent);
-    const items = element("ul", undefined, parent);
+    const items = element(ordered ? "ol" : "ul", undefined, parent);
     for (const value of values) element("li", value, items);
+  }
+
+  // Compact score bars: the visible number is the accessible value; the bar is decorative.
+  function skillBars(parent, scores) {
+    const rows = element("div", undefined, parent, "comm-coach-skills");
+    for (const [key, label] of Object.entries(skills)) {
+      const value = scores[key];
+      if (value === null || value === undefined) continue;
+      const row = element("div", undefined, rows, "comm-coach-skill");
+      element("span", label, row);
+      const bar = element("span", undefined, row, "comm-coach-bar");
+      bar.setAttribute("aria-hidden", "true");
+      element("span", undefined, bar).style.width = (value / 5 * 100) + "%";
+      element("span", `${value}`, row, "comm-coach-skill-value").setAttribute("aria-label", `${value} out of 5`);
+    }
+    return rows;
   }
 
   function mount(container, question, answerInput, context = {}) {
     const generation = ++instance;
     const active = () => instance === generation && container.isConnected;
+    // Sites without a configured Worker (previews, the legacy origin) show plain Free Practice.
+    if (!endpoint) {
+      container.hidden = true;
+      return;
+    }
     // Within a daily session, keep the first evaluation of each question in page memory so the review
     // step can compare against it. Leaving the session (or using Free Practice) discards it.
     const sessionId = context.session ?? null;
@@ -142,22 +152,21 @@
       memorySession = sessionId;
     }
     const memoryKey = sessionId && sessionId + ":" + question.id;
-    const box = details(container, "AI Communication Coach");
-    const status = element("p", undefined, box);
+    const box = details(container, "AI Communication Coach", "comm-coach");
+    const summary = box.querySelector("summary");
+    const note = element("p", undefined, box, "comm-coach-note");
+    const controls = element("div", undefined, box, "comm-coach-controls");
+    const status = element("p", undefined, box, "comm-coach-status");
     status.setAttribute("role", "status");
-    const controls = element("div", undefined, box);
-    const earlier = element("p", undefined, box);
+    const earlier = element("p", undefined, box, "comm-coach-note");
     const output = element("div", undefined, box);
-    let result, initial = memoryKey ? memory.get(memoryKey) ?? null : null, followUp, usage, config, busy = false;
+    let result, initial = memoryKey ? memory.get(memoryKey) ?? null : null, followUp, config, busy = false;
     let input = answerInput;
-    if (initial) {
-      earlier.textContent = `Earlier AI assessment in this session · ${initial.feedback.overall.toFixed(1)} / 5. ` +
-        "Evaluate your revised answer to compare the two attempts.";
-    } else earlier.hidden = true;
-    const signedIn = () => auth && auth.expires > Date.now();
+    earlier.hidden = !initial;
+    if (initial) earlier.textContent = `Earlier score in this session: ${score(initial.feedback.overall)} / 5. Evaluate your revision to compare.`;
 
     dispose = () => {
-      result = initial = followUp = usage = null;
+      result = initial = followUp = null;
       input = null;
       output.replaceChildren();
       container.querySelector(".comm-coach-followup")?.remove();
@@ -170,26 +179,25 @@
     function showControls() {
       controls.replaceChildren();
       if (!config?.enabled) return;
-      const actions = element("div", undefined, controls);
-      actions.className = "acts";
       if (!signedIn()) {
-        button(actions, "Set up Google Sign-In", signIn);
+        button(controls, "Sign in to use AI feedback", signIn, "comm-coach-link");
         return;
       }
-      const evaluate = button(actions, "Evaluate my answer", submit, true);
-      evaluate.disabled = busy || usage?.remainingToday === 0 || usage?.remainingMonthlyMicros === 0;
-      button(actions, "Sign out", signOut);
-      if (usage) {
-        const daily = usage.evaluationsToday + usage.remainingToday;
-        const monthly = usage.estimatedMonthlyMicros + usage.remainingMonthlyMicros;
-        meter(controls, "Evaluations today", usage.evaluationsToday, daily, `${usage.evaluationsToday} of ${daily}`);
-        meter(controls, "Monthly budget used", usage.estimatedMonthlyMicros, monthly,
-          `${money(usage.estimatedMonthlyMicros)} of ${money(monthly)}`);
-        element("p", `${usage.evaluationsToday} used today · ${usage.remainingToday} left · ${usage.inputTokensToday} input and ${usage.outputTokensToday} output tokens reported`, controls);
-        element("p", `Estimated today ${money(usage.estimatedDailyMicros)} · month ${money(usage.estimatedMonthlyMicros)} · available ${money(usage.remainingMonthlyMicros)}`, controls);
-        if (usage.reservedMonthlyMicros) element("p", `Includes ${money(usage.reservedMonthlyMicros)} in unsettled reservations.`, controls);
-        element("p", "Application estimates, separate from your OpenAI balance. Limits reset on Zurich dates.", controls);
+      const evaluate = button(controls, busy ? "Evaluating…" : "Evaluate my answer", submit, "solid");
+      evaluate.disabled = busy;
+      button(controls, "Sign out", signOut, "comm-coach-link");
+    }
+
+    function showNote() {
+      if (!config?.enabled) {
+        note.hidden = true;
+        return;
       }
+      note.hidden = false;
+      note.textContent = config.mock
+        ? "Mock mode: sample feedback for testing. No answer leaves this site."
+        : "Evaluating sends your written answer to an external AI service (OpenAI). Answers and feedback are not saved.";
+      if (config.mock && !summary.querySelector(".comm-coach-badge")) element("span", "Mock", summary, "comm-coach-badge");
     }
 
     async function signIn() {
@@ -197,7 +205,7 @@
       busy = true;
       const signin = controls.querySelector("button");
       if (signin) signin.disabled = true;
-      showStatus("Preparing Google Sign-In…");
+      showStatus("");
       try {
         const identity = await google();
         const { nonce } = await api("/v1/auth/challenge", { method: "POST", token: null });
@@ -210,7 +218,8 @@
               const session = await api("/v1/auth/session", { method: "POST", body: { credential }, token: null });
               if (!active()) return;
               auth = session;
-              await refresh();
+              showStatus("");
+              showControls();
             } catch (error) {
               showStatus(error.message);
               if (active()) showControls();
@@ -218,8 +227,7 @@
           }
         });
         controls.replaceChildren();
-        identity.renderButton(controls, { theme: "outline", text: "signin_with" });
-        showStatus("Sign in with the authorized Google account.");
+        identity.renderButton(controls, { theme: "outline", text: "signin_with", size: "medium" });
       } catch (error) {
         showStatus(error.message);
         if (active()) showControls();
@@ -228,29 +236,22 @@
       }
     }
 
-    async function refresh() {
-      usage = await api("/v1/usage");
-      if (!active()) return;
-      showControls();
-      showStatus(config.mock ? "Mock coach. No OpenAI call will be made." : "Each evaluation sends your written answer to OpenAI. Feedback stays in this session.");
-    }
-
     async function signOut() {
       const session = auth?.session;
       auth = null;
       memory.clear();
       earlier.hidden = true;
-      result = initial = followUp = usage = null;
+      result = initial = followUp = null;
       input = answerInput;
       output.replaceChildren();
       container.querySelector(".comm-coach-followup")?.remove();
       window.google?.accounts?.id?.disableAutoSelect();
       showControls();
+      showStatus("Signed out.");
       try {
         if (session) await api("/v1/auth/session", { method: "DELETE", token: session });
-        showStatus("Signed out.");
       } catch {
-        showStatus("Signed out in this tab. The server session will expire automatically.");
+        // The server session expires on its own; nothing else to tell the learner.
       }
     }
 
@@ -263,7 +264,7 @@
         return;
       }
       if (result?.answer === answer) {
-        showStatus("Revise the answer before requesting another evaluation.");
+        showStatus("Revise your answer before evaluating again.");
         return;
       }
       if (!signedIn()) {
@@ -285,15 +286,11 @@
         initial ??= { ...evaluated, answer, at: new Date().toISOString() };
         result = { ...evaluated, answer, at: new Date().toISOString() };
         if (memoryKey && !followUp && !memory.has(memoryKey)) memory.set(memoryKey, initial);
-        usage = evaluated.usage;
+        showStatus("");
         renderFeedback();
-        showStatus("Evaluation complete.");
       } catch (error) {
         if (!active() || (auth && auth.session !== session)) return;
         showStatus(error.message);
-        if (auth?.session === session) {
-          try { usage = await api("/v1/usage", { token: session }); } catch { /* Keep the last known totals. */ }
-        }
       } finally {
         busy = false;
         if (active()) showControls();
@@ -309,11 +306,8 @@
           scores: Object.fromEntries(Object.keys(skills).map(key => [key, result.feedback.skills[key].score])),
           reviewAt: review ? new Date(Date.now() + 86_400_000).toISOString() : null, mock: result.mock
         };
-        if (!review) {
-          entry.reviewAt = progress.load(localStorage).find(item => item.id === entry.id)?.reviewAt ?? null;
-        }
         progress.save(localStorage, entry);
-        showStatus(review ? "Scores saved and question marked for review tomorrow." : "Scores saved. Answer and feedback stay in this session.");
+        showStatus(review ? "Scores saved. This question is marked for review tomorrow." : "Scores saved.");
       } catch {
         showStatus("Browser storage could not save the scores.");
       }
@@ -322,46 +316,75 @@
     function renderFeedback() {
       output.replaceChildren();
       const data = result.feedback;
-      const heading = element("h3", `${result.mock ? "Mock result" : "AI assessment"} · ${data.overall.toFixed(1)} / 5`, output);
+      const view = element("section", undefined, output, "comm-coach-result");
+
+      const head = element("div", undefined, view, "comm-coach-head");
+      const heading = element("h3", undefined, head, "comm-coach-score");
       heading.tabIndex = -1;
-      element("p", "Scores are coaching judgments. Your self-assessment stays separate.", output);
-      list(output, "Next steps", data.actions);
-      const rubric = details(output, "Skill scores and reasons");
+      heading.setAttribute("aria-label", `${result.mock ? "Mock score" : "Overall score"} ${score(data.overall)} out of 5`);
+      element("span", "Overall", heading, "comm-coach-score-label");
+      element("span", score(data.overall), heading, "comm-coach-score-value");
+      element("span", "/ 5", heading, "comm-coach-score-scale");
+
+      // Priority first: the model returns at most three actions, already ordered by importance.
+      if (data.actions.length) {
+        const next = element("div", undefined, view, "comm-coach-priority");
+        list(next, "Improve next", data.actions, true);
+      }
+
+      skillBars(view, Object.fromEntries(Object.keys(skills).map(key => [key, data.skills[key].score])));
+      const reasons = details(view, "Why these scores");
+      const reasonList = element("ul", undefined, reasons);
       for (const [key, label] of Object.entries(skills)) {
         const skill = data.skills[key];
-        element("p", `${label} · ${skill.score === null ? "Not applicable" : skill.score + " / 5"} · ${skill.reason}`, rubric);
+        if (skill.score !== null) element("li", `${label}: ${skill.reason}`, reasonList);
       }
-      const specifics = details(output, "Technical feedback and professional English");
-      for (const [label, entries] of [
-        ["Technical strengths", data.technicalStrengths], ["Technical mistakes", data.technicalMistakes],
-        ["Missing concepts", data.missingConcepts], ["Communication strengths", data.communicationStrengths],
-        ["Communication weaknesses", data.communicationWeaknesses], ["Suggested learning topics", data.learningTopics],
-        ["English corrections", data.corrections.map(item => `${item.original} → ${item.revision} · ${item.reason}`)]
-      ]) list(specifics, label, entries);
-      const example = details(output, "Recommended structure and improved answer");
-      element("p", data.suggestedStructure, example);
-      element("p", data.improvedAnswer, example);
-      element("h4", "Suggested follow-up", output);
-      element("p", data.followUp, output);
-      const actions = element("div", undefined, output);
-      actions.className = "acts";
-      button(actions, "Try again", () => input.focus());
-      if (initial.id !== result.id) button(actions, "Compare attempts", compare);
-      button(actions, "Save scores", () => save(false));
-      button(actions, "Mark knowledge gap for review", () => save(true));
-      button(actions, "Continue to follow-up", () => {
+
+      if (data.technicalStrengths.length || data.technicalMistakes.length || data.missingConcepts.length) {
+        const technical = details(view, "Technical feedback");
+        list(technical, "Strengths", data.technicalStrengths);
+        list(technical, "Mistakes", data.technicalMistakes);
+        list(technical, "Missing concepts", data.missingConcepts);
+      }
+      if (data.corrections.length) {
+        const english = details(view, "Professional English");
+        const items = element("ul", undefined, english, "comm-coach-corrections");
+        for (const item of data.corrections) {
+          const line = element("li", undefined, items);
+          element("s", item.original, line);
+          element("span", " → ", line).setAttribute("aria-label", "becomes");
+          element("strong", item.revision, line);
+          element("span", item.reason, line, "comm-coach-reason");
+        }
+      }
+      const example = details(view, "Improved example answer");
+      element("p", data.suggestedStructure, example, "comm-coach-structure");
+      element("p", data.improvedAnswer, example, "comm-answer");
+
+      const follow = element("div", undefined, view, "comm-coach-next-question");
+      element("h4", "Follow-up question", follow);
+      element("p", data.followUp, follow);
+      button(follow, "Answer the follow-up", () => {
         followUp = result.followUp;
         const prompt = result.feedback.followUp;
         result = initial = null;
         container.querySelector(".comm-coach-followup")?.remove();
-        const label = element("label", prompt);
-        label.className = "comm-coach-followup";
+        const label = element("label", prompt, undefined, "comm-coach-followup");
         input = element("textarea", undefined, label);
         input.rows = 4;
         output.before(label);
         output.replaceChildren();
         input.focus();
       });
+
+      const actions = element("div", undefined, view, "acts comm-coach-actions");
+      button(actions, "Try again", () => input.focus());
+      if (initial.id !== result.id) button(actions, "Compare attempts", compare);
+      button(actions, "Save scores", () => save(review.checked), "solid");
+      const reviewLabel = element("label", undefined, actions, "comm-coach-check");
+      const review = element("input", undefined, reviewLabel);
+      review.type = "checkbox";
+      reviewLabel.append(" Review again tomorrow");
       const next = container.closest("article")?.querySelector("#comm-next");
       if (next) button(actions, "Next question", () => next.click());
       heading.focus();
@@ -370,41 +393,37 @@
     function compare() {
       let area = output.querySelector(".comm-coach-comparison");
       if (!area) {
-        area = details(output, "Original and revised answers");
-        area.className = "comm-coach-comparison";
-        for (const [label, entry] of [["Original", initial], ["Revised", result]]) {
-          element("h4", label, area);
-          const answer = element("p", entry.answer, area);
-          answer.className = "comm-answer";
-        }
-        const sameRubric = initial.rubric === result.rubric && initial.model === result.model;
-        if (sameRubric) {
-          const differences = Object.entries(skills).flatMap(([key, label]) => {
+        area = element("section", undefined, output.querySelector(".comm-coach-result") ?? output, "comm-coach-comparison");
+        area.tabIndex = -1;
+        element("h4", `Overall ${score(initial.feedback.overall)} → ${score(result.feedback.overall)}`, area);
+        if (initial.rubric === result.rubric && initial.model === result.model) {
+          const changes = Object.entries(skills).flatMap(([key, label]) => {
             const a = initial.feedback.skills[key].score, b = result.feedback.skills[key].score;
-            return a === null || b === null ? [] : [`${label} · ${a} → ${b}`];
+            return a === null || b === null || a === b ? [] : [`${label}: ${a} → ${b}`];
           });
-          const items = element("ul", undefined, area);
-          for (const difference of differences) element("li", difference, items);
+          if (changes.length) {
+            const items = element("ul", undefined, area);
+            for (const change of changes) element("li", change, items);
+          } else element("p", "Skill scores are unchanged.", area);
+        }
+        const columns = element("div", undefined, area, "comm-coach-columns");
+        for (const [label, entry] of [["Earlier", initial], ["Revised", result]]) {
+          const column = element("div", undefined, columns);
+          element("h5", `${label} · ${score(entry.feedback.overall)}`, column);
+          element("p", entry.answer, column, "comm-answer");
         }
       }
-      area.open = true;
-      area.querySelector("summary").focus();
+      area.focus();
     }
 
     box.addEventListener("toggle", async () => {
       if (!box.open || config || busy) return;
-      if (!endpoint) {
-        showStatus("AI evaluation is unavailable on this site. Free Practice is ready to use.");
-        return;
-      }
       busy = true;
-      showStatus("Connecting to the coach…");
       try {
         config = await api("/v1/config", { token: null });
         if (!active()) return;
-        if (!config.enabled) showStatus(errors.disabled);
-        else if (signedIn()) await refresh();
-        else showStatus("Sign in to use the owner-only coach.");
+        showNote();
+        if (!config.enabled) showStatus(unavailable);
       } catch (error) {
         showStatus(error.message);
       } finally {
@@ -414,9 +433,48 @@
     });
   }
 
+  // Owner-only usage details, kept out of practice. Visible only while signed in.
+  function showSettings(panel) {
+    if (!endpoint || !signedIn()) return;
+    const section = details(panel, "AI Coach settings", "comm-card comm-block comm-coach-settings");
+    const body = element("div", undefined, section);
+    section.addEventListener("toggle", async () => {
+      if (!section.open) return;
+      body.replaceChildren(element("p", "Loading usage…"));
+      try {
+        const usage = await api("/v1/usage");
+        const daily = usage.evaluationsToday + usage.remainingToday;
+        const monthly = usage.estimatedMonthlyMicros + usage.remainingMonthlyMicros;
+        const rows = element("dl", undefined, undefined, "comm-scores");
+        for (const [term, value] of [
+          ["Evaluations today", `${usage.evaluationsToday} of ${daily}`],
+          ["Estimated spend this month", `${money(usage.estimatedMonthlyMicros)} of ${money(monthly)}`],
+          ["Tokens today", `${usage.inputTokensToday} in · ${usage.outputTokensToday} out`],
+          ...(usage.reservedMonthlyMicros ? [["Unsettled reservations", money(usage.reservedMonthlyMicros)]] : []),
+          ...(usage.mock ? [["Mode", "Mock (no OpenAI calls)"]] : [])
+        ]) {
+          const row = element("div", undefined, rows);
+          element("dt", term, row);
+          element("dd", value, row);
+        }
+        body.replaceChildren(rows, element("p", "Estimates from the coach's own ledger. Limits reset at midnight, Zurich time.", undefined, "comm-coach-note"));
+      } catch (error) {
+        body.replaceChildren(element("p", error.message));
+      }
+      const signOut = button(body, "Sign out", async () => {
+        const session = auth?.session;
+        auth = null;
+        memory.clear();
+        window.google?.accounts?.id?.disableAutoSelect();
+        section.remove();
+        try { if (session) await api("/v1/auth/session", { method: "DELETE", token: session }); } catch { /* expires */ }
+      }, "comm-coach-link");
+      signOut.setAttribute("aria-label", "Sign out of AI feedback");
+    });
+  }
+
   function showProgress(panel, bank) {
-    const section = details(panel, "AI assessment history");
-    section.className = "comm-card comm-block";
+    const section = details(panel, "AI assessment history", "comm-card comm-block");
     function draw() {
       for (const child of [...section.children].slice(1)) child.remove();
       let rows;
@@ -430,29 +488,28 @@
       }
       const live = rows.filter(row => !row.mock);
       if (live.length) {
-        const average = values => (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
-        element("p", `${live.length} saved AI assessments · average ${average(live.map(row => row.overall))} / 5`, section);
-        const skillList = details(section, "Average AI scores by skill");
-        for (const [skill, label] of Object.entries(skills)) {
+        const average = values => (values.reduce((sum, value) => sum + value, 0) / values.length);
+        element("p", `${live.length} saved AI assessments · average ${score(average(live.map(row => row.overall)))} / 5`, section);
+        const averages = Object.fromEntries(Object.keys(skills).map(skill => {
           const values = live.map(row => row.scores[skill]).filter(value => value !== null);
-          if (values.length) element("p", `${label} · ${average(values)} / 5`, skillList);
-        }
-        const questions = details(section, "AI scores by question");
-        questions.className = "comm-coach-questions";
+          return [skill, values.length ? Number(average(values).toFixed(1)) : null];
+        }));
+        skillBars(details(section, "Average AI scores by skill"), averages);
+        const questions = details(section, "AI scores by question", "comm-coach-questions");
         const items = element("ul", undefined, questions);
         for (const entry of progress.byQuestion(rows)) {
           const name = bank.find(q => q.id === entry.questionId)?.prompt ?? entry.questionId;
           const review = entry.reviewAt ? ` · review ${new Date(entry.reviewAt).toLocaleDateString()}` : "";
-          element("li", `${name} · latest ${entry.latest.toFixed(1)} · best ${entry.best.toFixed(1)} · ` +
+          element("li", `${name} · latest ${score(entry.latest)} · best ${score(entry.best)} · ` +
             `${entry.attempts} ${entry.attempts === 1 ? "attempt" : "attempts"}${review}`, items);
         }
       }
-      const attempts = element("ul", undefined, section);
+      const attempts = element("ul", undefined, section, "comm-coach-history");
       for (const row of rows.slice().reverse()) {
         const name = bank.find(q => q.id === row.questionId)?.prompt ?? row.questionId;
         const line = element("li", undefined, attempts);
-        element("p", `${row.mock ? "Mock · " : ""}${name} · ${row.overall.toFixed(1)} / 5 · ${new Date(row.at).toLocaleDateString()}`, line);
-        if (row.reviewAt) element("p", "Review " + new Date(row.reviewAt).toLocaleDateString(), line);
+        element("p", `${row.mock ? "Mock · " : ""}${name} · ${score(row.overall)} / 5 · ${new Date(row.at).toLocaleDateString()}` +
+          (row.reviewAt ? ` · review ${new Date(row.reviewAt).toLocaleDateString()}` : ""), line);
         button(line, "Delete saved AI score", () => {
           try {
             progress.remove(localStorage, row.id);
@@ -461,10 +518,11 @@
           } catch {
             element("p", "The score could not be removed.", line).setAttribute("role", "status");
           }
-        });
+        }, "comm-coach-link");
       }
     }
     draw();
+    showSettings(panel);
   }
 
   window.DrillCoach = { mount, showProgress, clear: () => { instance++; dispose?.(); dispose = null; } };

@@ -91,33 +91,52 @@ for (const theme of ["dark", "light"]) {
       await page.goto(site + pagePath);
       const byButton = name => page.getByRole("button", { name, exact: true });
       const evaluation = () => byButton("Evaluate my answer");
-      await page.getByText("AI Communication Coach", { exact: true }).click();
-      await byButton("Set up Google Sign-In").click();
-      await byButton("Mock Google Sign-In").click();
-      await evaluation().waitFor();
+      const coach = () => page.getByText("AI Communication Coach", { exact: true });
+      const coachPanel = page.locator("[id=comm-coach]");
+      const signIn = async () => {
+        await byButton("Sign in to use AI feedback").click();
+        await byButton("Mock Google Sign-In").click();
+        await evaluation().waitFor();
+      };
+      // The practice view is about learning: no usage, cost, token or model details.
+      const assertNoOperationalDetails = async () => {
+        const text = await coachPanel.innerText();
+        assert.doesNotMatch(text, /token|\$|gpt-|budget|Evaluations today|OpenAI balance|micros/i);
+      };
+      await coach().click();
+      await page.getByText("Mock mode: sample feedback for testing.", { exact: false }).waitFor();
+      assert.ok(await coachPanel.locator(".comm-coach-badge").isVisible());
+      await signIn();
       const input = page.getByLabel("Written answer (optional)");
       await input.fill("Original private answer with <markup>");
       assert.equal(calls, 0);
       await evaluation().click();
-      await page.getByRole("heading", { name: "Mock result · 3.0 / 5" }).waitFor();
-      await page.getByText("Recommended structure and improved answer", { exact: true }).click();
+      await page.getByRole("heading", { name: "Mock score 3.0 out of 5" }).waitFor();
+      assert.ok(await page.getByRole("heading", { name: "Improve next" }).isVisible());
+      assert.ok([7, 8].includes(await coachPanel.locator(".comm-coach-skill").count()));
+      await page.getByText("Improved example answer", { exact: true }).click();
       assert.ok(await page.getByText("Start with a direct definition.", { exact: false }).isVisible());
+      await assertNoOperationalDetails();
       await byButton("Save scores").click();
+      await page.getByText("Scores saved.", { exact: true }).waitFor();
       await byButton("Try again").click();
       await input.fill("Revised private answer with one concrete example");
       await evaluation().click();
       await byButton("Compare attempts").click();
+      assert.ok(await page.getByText("Overall 3.0 → 3.0", { exact: true }).isVisible());
       assert.ok(await page.getByText("Original private answer with <markup>", { exact: true }).isVisible());
       assert.ok(await page.getByText("Revised private answer with one concrete example", { exact: true }).isVisible());
-      await byButton("Mark knowledge gap for review").click();
+      await page.getByLabel("Review again tomorrow").check();
+      await byButton("Save scores").click();
+      await page.getByText("marked for review tomorrow", { exact: false }).waitFor();
       const snapshot = await page.evaluate(() => JSON.stringify(localStorage));
       assert.ok(snapshot.includes("drill-ai-coach-v1"));
       assert.ok(!snapshot.includes("private answer") && !snapshot.includes("Start with a direct definition"));
-      await byButton("Continue to follow-up").click();
+      await byButton("Answer the follow-up").click();
       assert.equal(calls, 2);
-      assert.ok(await page.getByLabel("How would you test whether that approach works?").isVisible());
-      outage = true;
       const followUp = page.getByLabel("How would you test whether that approach works?");
+      assert.ok(await followUp.isVisible());
+      outage = true;
       await followUp.fill("My answer despite the outage");
       await evaluation().click();
       await page.getByText("The coach is unreachable.", { exact: false }).waitFor();
@@ -127,22 +146,17 @@ for (const theme of ["dark", "light"]) {
       assert.equal(await followUp.count(), 0);
       await byButton("Daily practice").click();
       await byButton("Start 5-minute quick practice").click();
-      assert.ok(await page.getByText("AI Communication Coach", { exact: true }).isVisible());
+      assert.ok(await coach().isVisible());
       assert.equal(calls, 3);
 
       // Daily (quick) session: evaluate each answer step, then compare on the review step.
-      const coach = () => page.getByText("AI Communication Coach", { exact: true });
       const rateAll = async value => {
         for (const select of await page.locator("#comm-assessment select[name]:not([name='duration'])").all()) {
           await select.selectOption(value);
         }
       };
       await coach().click();
-      await byButton("Set up Google Sign-In").click();
-      await byButton("Mock Google Sign-In").click();
-      await evaluation().waitFor();
-      assert.ok(await page.getByText("Evaluations today · 2 of 10", { exact: true }).isVisible());
-      assert.ok(await page.getByText("Monthly budget used", { exact: false }).isVisible());
+      await signIn();
       for (const [index, text] of ["First session answer", "Second session answer"].entries()) {
         if (index) {
           await coach().click();
@@ -150,12 +164,12 @@ for (const theme of ["dark", "light"]) {
         }
         await input.fill(text);
         await evaluation().click();
-        await page.getByRole("heading", { name: "Mock result · 3.0 / 5" }).waitFor();
+        await page.getByRole("heading", { name: "Mock score 3.0 out of 5" }).waitFor();
         await rateAll("1");
         await byButton("Save and next question").click();
       }
       await coach().click();
-      await page.getByText("Earlier AI assessment in this session · 3.0 / 5.", { exact: false }).waitFor();
+      await page.getByText("Earlier score in this session: 3.0 / 5.", { exact: false }).waitFor();
       await evaluation().waitFor();
       await input.fill("Revised session answer with a measurable result");
       await evaluation().click();
@@ -163,13 +177,20 @@ for (const theme of ["dark", "light"]) {
       assert.ok(await page.getByText("First session answer", { exact: true }).last().isVisible());
       assert.ok(await page.getByText("Revised session answer with a measurable result", { exact: true }).last().isVisible());
       assert.equal(calls, 6);
+      await assertNoOperationalDetails();
       await rateAll("3");
       await byButton("Save and finish session").click();
       await page.getByText("Session complete.", { exact: false }).waitFor();
       const sessionStorage = await page.evaluate(() => JSON.stringify(localStorage));
       assert.ok(!sessionStorage.includes("session answer"));
 
-      // A live (non-mock) saved score appears in the question-level summary.
+      // Usage lives in a collapsed, owner-only settings section in Progress (signed in only).
+      await byButton("Progress").click();
+      await page.getByText("AI Coach settings", { exact: true }).click();
+      await page.getByText("5 of 10", { exact: true }).waitFor();
+      assert.ok(await page.getByText("Estimated spend this month", { exact: true }).isVisible());
+
+      // A live (non-mock) saved score appears in the question-level summary; reload signs out.
       await page.evaluate(() => window.DrillCoachProgress.save(localStorage, {
         id: "live-row", questionId: "iou", topic: "cv", category: "concept", at: new Date().toISOString(),
         model: "gpt-5.4-mini-2026-03-17", rubric: 1, overall: 2.5,
@@ -177,12 +198,26 @@ for (const theme of ["dark", "light"]) {
       }));
       await page.reload();
       await byButton("Progress").click();
+      assert.equal(await page.getByText("AI Coach settings", { exact: true }).count(), 0);
       await page.getByText("AI assessment history", { exact: true }).click();
       await page.getByText("AI scores by question", { exact: true }).click();
       assert.ok(await page.getByText("What is IoU? · latest 2.5 · best 2.5 · 1 attempt", { exact: true }).isVisible());
       assert.equal(await byButton("Delete saved AI score").count(), 3);
       await byButton("Delete saved AI score").first().click();
       assert.equal(await byButton("Delete saved AI score").count(), 2);
+
+      // Live mode shows the external-service privacy notice; a paused coach shows one simple message.
+      env.COACH_MODE = "live";
+      env.OPENAI_API_KEY = "mock-only-never-called";
+      await byButton("Practice").click();
+      await coach().click();
+      await page.getByText("Evaluating sends your written answer to an external AI service (OpenAI).", { exact: false }).waitFor();
+      env.COACH_MODE = "off";
+      await page.reload();
+      await coach().click();
+      await page.getByText("AI evaluation is temporarily unavailable. Free Practice remains available.", { exact: true }).waitFor();
+      assert.equal(await byButton("Sign in to use AI feedback").count(), 0);
+      assert.equal(calls, 6);
       assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       assert.deepEqual(pageErrors, []);
