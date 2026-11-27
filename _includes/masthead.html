@@ -1,31 +1,33 @@
 {% include base_path %}
 <header class="site-header">
   <div class="site-header__inner">
-    <a class="brand" href="{{ base_path }}/" aria-label="{{ site.name }}, home">
+    <a class="brand" href="{{ base_path }}/">
       <svg class="brand__mark" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16V3.5M4 16h12.5"/><path d="M2 6l2-2.5L6 6M14 14l2.5 2L14 18"/><path d="M4 16l7-7" opacity=".45"/><circle cx="4" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>
       <span class="brand__name">{{ site.name }}</span>
-      <span class="brand__tag">physical_ai · robotics</span>
+      <span class="brand__tag">AI &amp; Robotics Engineer</span>
     </a>
-    <nav class="site-nav" aria-label="Main">
+    <button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Menu" hidden>
+      <svg class="nav-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <svg class="nav-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <nav id="primary-nav" class="site-nav" aria-label="Main navigation">
       {% for link in site.data.navigation.main %}
+        {% assign current = false %}
+        {% if page.url == link.url or page.url == link.active %}{% assign current = true %}{% endif %}
+        {% if link.title == 'Blog' and page.collection == 'posts' %}{% assign current = true %}{% endif %}
         {% if link.children %}
-          {% assign active_child = link.children | where: "url", page.url | first %}
-          <details class="site-nav__group"{% if active_child %} data-active{% endif %}>
+          <details class="site-nav__group"{% if current or page.url == '/tishtar/' %} data-active{% endif %}>
             <summary>{{ link.title }}</summary>
             <div class="site-nav__submenu">
+              <a href="{{ link.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>All projects</a>
               {% for child in link.children %}
-                {% if child.url contains 'http' %}{% assign href = child.url %}{% else %}{% assign href = base_path | append: child.url %}{% endif %}
+                {% if child.url contains 'https://' %}{% assign href = child.url %}{% else %}{% assign href = child.url | relative_url %}{% endif %}
                 <a href="{{ href }}"{% if page.url == child.url %} aria-current="page"{% endif %}>{{ child.title }}</a>
               {% endfor %}
             </div>
           </details>
         {% else %}
-        {% if link.url contains 'http' %}{% assign href = link.url %}{% else %}{% assign href = base_path | append: link.url %}{% endif %}
-        {% assign current = false %}
-        {% if page.url == link.url %}{% assign current = true %}{% endif %}
-        {% if link.url == '/year-archive/' and page.collection == 'posts' %}{% assign current = true %}{% endif %}
-        {% if link.url == '/portfolio/' and page.collection == 'portfolio' %}{% assign current = true %}{% endif %}
-        <a href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ link.title }}</a>
+          <a href="{{ link.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>{{ link.title }}</a>
         {% endif %}
       {% endfor %}
     </nav>

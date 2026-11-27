@@ -1,0 +1,9 @@
+- title: "PanNote: An Automatic Tool for Panoramic Image Annotation of People’s Positions"
+  authors: [Alberto Bacchin, Leonardo Barcellona, Sepideh Shamsizadeh, Emilio Olivastri, Alberto Pretto, Emanuele Menegatti]
+  venue: IEEE International Conference on Robotics and Automation (ICRA)
+  year: 2024
+  details: Yokohama, Japan · pp. 17006–17012
+  summary: PanNote combines panoramic camera images and 2D LiDAR measurements to label where people are relative to a robot.
+  doi: 10.1109/ICRA57147.2024.10610347
+  pdf: https://research.unipd.it/retrieve/86a7c499-35f2-4590-b619-281d29461618/ICRA2024_Draft.pdf
+  source: https://github.com/bach05/PanNote

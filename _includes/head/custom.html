@@ -41,3 +41,9 @@
 <link rel="stylesheet" href="{{ '/assets/css/technical-article.css' | relative_url }}">
 <script src="{{ '/assets/js/technical-article.js' | relative_url }}" defer></script>
 {% endif %}
+
+<link rel="stylesheet" href="{{ '/assets/css/navigation.css' | relative_url }}">
+<script src="{{ '/assets/js/navigation.js' | relative_url }}" defer></script>
+{% if page.project_publication_styles %}
+<link rel="stylesheet" href="{{ '/assets/css/project-publication.css' | relative_url }}">
+{% endif %}

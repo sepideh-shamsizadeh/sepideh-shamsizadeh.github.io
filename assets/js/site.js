@@ -19,17 +19,6 @@
     label();
   }
 
-  document.querySelectorAll(".site-nav__group").forEach(function (group) {
-    document.addEventListener("click", function (event) {
-      if (group.open && !group.contains(event.target)) group.open = false;
-    });
-    group.addEventListener("keydown", function (event) {
-      if (event.key !== "Escape" || !group.open) return;
-      group.open = false;
-      group.querySelector("summary").focus();
-    });
-  });
-
   /* ---- pointer glow ---- */
   if (window.matchMedia("(hover: hover)").matches && !reduce) {
     var glow = document.createElement("div");
