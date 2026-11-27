@@ -17,7 +17,8 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-          bundler-cache: true
+      - name: Install the locked Ruby dependencies
+        run: bundle install --jobs 4 --retry 3
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
