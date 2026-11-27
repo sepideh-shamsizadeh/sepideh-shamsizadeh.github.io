@@ -38,6 +38,10 @@ include:
   - files
 exclude:
   - blog/robotics/_posts/2026-11-24-designing_self-driving_car.md
+  - .vercel
+  - scripts
+  - _config.vercel.yml
+  - _config.preview.yml
   - .bundle
   - .jekyll-cache
   - .sass-cache
