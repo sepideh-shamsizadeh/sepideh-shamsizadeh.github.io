@@ -51,6 +51,13 @@ jobs:
         run: bash scripts/build-vercel.sh preview
       - name: Check generated routes and metadata
         run: node tests/vercel-output.cjs preview
+      - name: Verify project-scoped upload with current Vercel CLI
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/chore/verify-vercel-production-auth'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@67.0.0 deploy --environment preview --prebuilt --yes --scope sepide --token "$VERCEL_TOKEN"
       - name: Deploy trusted preview
         if: vars.VERCEL_PREVIEW_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
         env:
