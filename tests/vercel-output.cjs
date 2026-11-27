@@ -11,6 +11,10 @@ for (const route of ["", "drill/", "drill/communication/", "drill/transfer/", "t
   assert.ok(html.includes('href="/assets/css/site.css"'), route);
   assert.equal(/name="robots" content="noindex, nofollow"/.test(html), preview, route);
 }
+const home = read("index.html");
+assert.match(home, /href="https:\/\/playground\.sepideh\.io\/[^>]*>Playground<\/a>/);
+assert.match(home, /href="\/drill\/[^>]*>DRILL<\/a>/);
+assert.match(read("blog/index.html"), /https:\/\/sepideh\.io\/year-archive\//);
 for (const path of ["404.html", "cv/index.html", "files/Sepideh-Shamsizadeh-CV.pdf"]) {
   assert.ok(existsSync(`${output}/static/${path}`), path);
 }

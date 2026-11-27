@@ -10,9 +10,10 @@ main:
     url: /year-archive/
 
   - title: "Playground"
-    children:
-      - title: "Interview Preparation"
-        url: /drill/
+    url: https://playground.sepideh.io/
+
+  - title: "DRILL"
+    url: /drill/
 
   - title: "cv.pdf"
     url: /files/Sepideh-Shamsizadeh-CV.pdf

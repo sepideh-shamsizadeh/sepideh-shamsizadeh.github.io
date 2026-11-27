@@ -1,16 +1,9 @@
-# Playground separation
+# Playground and the professional site
 
-Playground is the presentation layer at the planned `https://playground.sepideh.io/`. The lab repository keeps reproducible implementations and GitHub Project 13 tracks engineering progress. TISHTAR and DRILL remain on their existing paths and deployments.
+[Playground](https://playground.sepideh.io/) is a separate site on Vercel Hobby. Its [repository](https://github.com/sepideh-shamsizadeh/sepideh-playground) holds the catalog and Markdown articles. The [lab repository](https://github.com/sepideh-shamsizadeh/applied-ai-robotics-lab) holds implementations, and [GitHub Project 13](https://github.com/users/sepideh-shamsizadeh/projects/13) tracks engineering progress.
 
-## Baseline
+The main navigation links directly to Playground and DRILL. DRILL and TISHTAR keep their existing paths. The blog remains at `/year-archive/`, with `/blog/` as an alias.
 
-The professional site uses Jekyll layouts, local theme assets, and an Actions-built Vercel static deployment. Its current “Playground” dropdown links only to `/drill/`; the production `/playground/` URL returned 404. There is no tracked standalone Playground page, experiment directory, or storage to copy. DRILL stores browser state and uses an owner-only coach API. The independent Playground should link to DRILL without rehosting its pages, storage, Coach or transfer workflow. The published blog is `/year-archive/`; the optional `/blog/` alias retains that destination.
+When a technical article accompanies an experiment, add `lab_experiment: <slug>` to its Jekyll front matter. Set the matching Playground entry's `links.article` to the published article URL. Verify the two links after both deployments.
 
-## Cutover checklist
-
-1. Publish the independent repository and verify a Vercel Hobby preview. Confirm domain assignment, DNS, HTTPS and production routes only after approval.
-2. After approval, set `playground_url: https://playground.sepideh.io` and update the professional-site navigation. Keep access to `/drill/`, `/tishtar/`, all articles, and the GitHub Pages progress export. Link the new platform back to the professional site and blog.
-3. If evidence reveals a deployed legacy Playground landing path, add a path-specific migration link or redirect. Leave unrelated routes and existing browser origins untouched.
-4. Roll back by reverting the navigation change and restoring the previous Playground deployment. If the subdomain itself needs reversal, remove only its assignment after approval.
-
-The review branch prepares an optional article link and blog alias. It leaves production navigation and DNS untouched.
+To roll back the integration, revert the professional-site navigation and rebuild through the existing GitHub Actions workflow. Roll back Playground separately using its Vercel deployment history.
