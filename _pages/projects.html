@@ -1,0 +1,30 @@
+---
+layout: archive
+title: Projects
+permalink: /projects/
+author_profile: false
+wide: true
+lead: Engineering projects in robotics, perception and applied AI.
+---
+
+<div class="post-grid project-grid">
+  {% for project in site.data.projects %}
+  {% assign primary = project.links | first %}
+  <article class="post-card">
+    <a class="post-card__media" href="{{ primary.url | relative_url }}" aria-label="{{ project.title | escape }}" tabindex="-1">
+      <img src="{{ project.cover | relative_url }}" alt="{{ project.alt | escape }}" loading="lazy" width="960" height="540">
+    </a>
+    <div class="post-card__body">
+      <p class="post-card__meta">{{ project.domain | escape }}</p>
+      <h2><a href="{{ primary.url | relative_url }}">{{ project.title | escape }}</a></h2>
+      <p>{{ project.summary | escape }}</p>
+      <p class="project-stack">{{ project.technologies | join: ' · ' | escape }}</p>
+      <ul class="project-links" aria-label="Links for {{ project.title | escape }}">
+        {% for link in project.links %}
+        <li><a href="{{ link.url | relative_url }}">{{ link.label | escape }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </article>
+  {% endfor %}
+</div>

@@ -10,20 +10,13 @@ redirect_from:
 ---
 
 {% include base_path %}
-{% assign roadmap = site.data.tishtar_roadmap %}
-{% assign tr_done = roadmap.milestones | where: 'status', 'completed' | size %}
-{% assign tr_total = roadmap.milestones.size %}
-{% assign tr_percent = tr_done | times: 100 | divided_by: tr_total %}
-{% assign tr_current = roadmap.milestones | where: 'id', roadmap.road_current_milestone_id | first %}
-{% for phase in roadmap.phases %}{% if phase.id == tr_current.phase %}{% assign tr_phase = forloop.index %}{% endif %}{% endfor %}
 {% assign cv = base_path | append: '/files/Sepideh-Shamsizadeh-CV.pdf' %}
 
 <section class="hero" aria-labelledby="hero-title">
   <div>
-    <p class="eyebrow"><span class="status-dot"></span>Physical AI · Robotics · Zurich, Switzerland</p>
+    <p class="eyebrow">Zurich, Switzerland</p>
     <h1 class="hero__title" id="hero-title">Sepideh Shamsizadeh</h1>
-    <p class="hero__role">Physical AI &amp; Robotics Engineer</p>
-    <p class="typer" aria-label="Working on physical AI, robot perception, sensor fusion and edge AI"><span class="typer__prompt">&gt;</span> <span class="typer__key">working_on:</span> <span class="typer__word" aria-hidden="true" data-words="physical_ai,robot_perception,sensor_fusion,edge_ai,3d_vision,autonomous_navigation">robot_perception</span><span class="cursor-bar" aria-hidden="true"></span></p>
+    <p class="hero__role">AI &amp; Robotics Engineer</p>
     <p class="hero__lead">I build the perception that lets machines understand and act in the real world: embodied perception, multimodal sensor fusion and edge AI, from calibrated sensors and learned models to real-time systems on ROS 2 robots. MSc in AI &amp; Robotics.</p>
     <div class="actions">
       <a class="button button--primary" href="mailto:sepideh.92sh@gmail.com"><i class="fas fa-envelope" aria-hidden="true"></i> Get in touch</a>
@@ -37,36 +30,9 @@ redirect_from:
   <figure class="hero__photo">
     <div class="hero__frame">
       <img src="{{ base_path }}/images/sepideh-shamsizadeh.jpg" alt="Portrait of Sepideh Shamsizadeh" width="688" height="720" draggable="false">
-      <span class="bbox" data-label="engineer · 0.99" aria-hidden="true"><i></i><i></i><i></i></span>
     </div>
-    <figcaption>fig. 1 — detected with high confidence</figcaption>
   </figure>
 </section>
-
-<div class="dash" aria-label="Live panels">
-  <figure class="term" aria-label="Animated LiDAR point cloud">
-    <div class="term__bar" aria-hidden="true"><i></i><i></i><i></i><span>rviz2 — /tishtar/points</span><span class="term__stat"><b class="scan-fps">60</b> fps · <b class="scan-pts">0</b> pts</span></div>
-    <div class="scan">
-      <canvas aria-hidden="true"></canvas>
-      <div class="scan__hud" aria-hidden="true">frame: <span>base_link</span> · type: PointCloud2<br>track <span>07</span> · conf <span>0.96</span></div>
-    </div>
-  </figure>
-  <figure class="term term--status" aria-label="Current status">
-    <div class="term__bar" aria-hidden="true"><i></i><i></i><i></i><span>sepideh@zurich: ~</span></div>
-<pre class="term__body" data-type><span class="p">$</span> ros2 topic echo /sepideh/status
-<span class="k">role</span>: physical_ai_robotics_engineer
-<span class="k">focus</span>:
-  - physical_ai
-  - robot_perception
-  - sensor_fusion
-  - edge_ai
-<span class="k">stack</span>: [python, cpp, pytorch, ros2]
-<span class="k">location</span>: <span class="s">zurich</span>  <span class="c"># 47.37°N 8.54°E</span>
-<span class="k">building</span>: <a href="{{ base_path }}/tishtar/">tishtar</a>  <span class="c"># phase {{ tr_phase }}/{{ roadmap.phases.size }}</span>
----
-<span class="p">$</span> <span class="cursor" aria-hidden="true"></span></pre>
-  </figure>
-</div>
 
 <section class="section" aria-labelledby="impact-title">
   <div class="section-head">
@@ -86,92 +52,42 @@ redirect_from:
     <p class="eyebrow"><span class="idx">02</span> / Experience</p>
     <h2 id="experience-title">Experience</h2>
   </div>
-  <p class="gitlog-cmd"><b>$</b> git log --graph --career</p>
   <ol class="gitlog">
     <li class="is-head">
-      <div class="gitlog__meta"><code>e3a9f1c</code><span class="gitlog__ref">HEAD</span><span>2024-09 → 2026-08</span></div>
+      <div class="gitlog__meta"><span>2024-09 → 2026-08</span></div>
       <h3>Machine Learning Research Assistant <span>· ZHAW, Winterthur</span></h3>
       <p>Self-supervised multimodal learning on IMU + GNSS, computer vision for microscopy, and edge–cloud deployment with Docker and Kubernetes. MSCA secondment in Barcelona.</p>
     </li>
     <li>
-      <div class="gitlog__meta"><code>7b21d04</code><span>2023-11 → 2024-02</span></div>
+      <div class="gitlog__meta"><span>2023-11 → 2024-02</span></div>
       <h3>Project Management, Generative AI <span>· Eurapco, Zurich</span></h3>
       <p>LLM and knowledge-graph initiative in insurance, from concept to prototype.</p>
     </li>
     <li>
-      <div class="gitlog__meta"><code>4c8e2a7</code><span>2022-09 → 2023-09</span></div>
+      <div class="gitlog__meta"><span>2022-09 → 2023-09</span></div>
       <h3>Perception &amp; Robotics Researcher <span>· IAS-Lab, University of Padova</span></h3>
       <p>Real-time YOLOv7 + LiDAR detection, tracking and localisation on mobile robots; camera–LiDAR calibration.</p>
     </li>
     <li>
-      <div class="gitlog__meta"><code>1f0b9d3</code><span>2017-06 → 2019-09</span></div>
+      <div class="gitlog__meta"><span>2017-06 → 2019-09</span></div>
       <h3>ML R&amp;D Team Leader <span>· Kavosh, Tehran</span></h3>
       <p>Clinical coding assistant with BiLSTM and attention models, from research to production.</p>
     </li>
   </ol>
-  <p class="more-link"><a href="{{ base_path }}/story/">Read the full story →</a></p>
+  <p class="more-link"><a href="{{ base_path }}/story/">About Sepideh</a></p>
 </section>
 
-<section class="section" aria-labelledby="projects-title">
-  <div class="section-head">
-    <p class="eyebrow"><span class="idx">03</span> / Projects</p>
-    <h2 id="projects-title">Projects</h2>
-  </div>
+<section class="section" aria-label="Engineering and research">
   <div class="grid-2">
-    <a class="card card--feature" href="{{ base_path }}/tishtar/">
-      <div>
-        <span class="card__idx">[01]</span>
-        <p class="eyebrow"><span class="status-dot"></span>Active · personal robot</p>
-        <h3>Tishtar — an autonomous mobile robot, built from scratch</h3>
-        <p>Four wheels, a Raspberry Pi and an STM32, a pan-tilt camera, LiDAR and IMU, all on ROS 2. A platform to take perception, localization and navigation from idea to working hardware.</p>
-        <p class="card__more">See the roadmap →</p>
-      </div>
-      <div class="progress-mini" aria-label="{{ tr_done }} of {{ tr_total }} milestones completed">
-        <div class="progress-mini__label"><span>milestones</span><span>{{ tr_done }}/{{ tr_total }}</span></div>
-        <div class="progress-mini__bar"><span style="width: {{ tr_percent }}%"></span></div>
-        <div class="progress-mini__label progress-mini__label--gap"><span>phase</span><span>{{ tr_phase }}/{{ roadmap.phases.size }}</span></div>
-      </div>
+    <a class="card" href="{{ base_path }}/projects/">
+      <h2>Projects</h2>
+      <p>Explore selected engineering work in autonomous robotics, perception and applied AI.</p>
     </a>
-    <div class="card">
-      <span class="card__idx">[02]</span>
-      <h3>Mobile manipulation with ROS</h3>
-      <p>Navigation and obstacle avoidance for a mobile manipulator, with QR-code recognition driving pick-and-place and delivery.</p>
-      <p class="card__meta">ROS · Gazebo · RViz · Python</p>
-    </div>
-    <div class="card">
-      <span class="card__idx">[03]</span>
-      <h3>Industrial robot manipulation</h3>
-      <p>Pick-and-place, conveyor handling and sorting on a physical industrial arm, with joint and Cartesian motion and gripper control.</p>
-      <p class="card__meta">Adept V+ · tool frames · grasping</p>
-    </div>
-    <a class="card" href="https://medium.com/@sepideh.92sh/unveiling-the-magic-of-3d-reconstruction-a-journey-through-structure-from-motion-sfm-in-c-d66bc1d01a96">
-      <span class="card__idx">[04]</span>
-      <h3>Structure from Motion</h3>
-      <p>3D reconstruction pipeline in C++ with SIFT matching, multi-view geometry and bundle adjustment.</p>
-      <p class="card__meta">C++ · SIFT · Ceres Solver</p>
-    </a>
-    <a class="card" href="https://medium.com/@sepideh.92sh/decoding-pointnet-a-practical-guide-to-3d-segmentation-with-python-and-pytorch-7a037fecb8a7">
-      <span class="card__idx">[05]</span>
-      <h3>PointNet semantic segmentation</h3>
-      <p>Semantic segmentation of LiDAR point clouds on SemanticKITTI, 96% point-wise accuracy on held-out data.</p>
-      <p class="card__meta">PyTorch · point clouds · SemanticKITTI</p>
+    <a class="card" href="{{ base_path }}/publications/">
+      <h2>Publications</h2>
+      <p>Read PanNote, presented at IEEE ICRA 2024.</p>
     </a>
   </div>
-</section>
-
-<section class="section" aria-labelledby="pub-title">
-  <div class="section-head">
-    <p class="eyebrow"><span class="idx">04</span> / Publication</p>
-    <h2 id="pub-title">Publication</h2>
-  </div>
-  <article class="pub">
-    <span class="pub__idx">[1]</span>
-    <div>
-      <h3><a href="https://doi.org/10.1109/ICRA57147.2024.10610347">PanNote: An Automatic Tool for Panoramic Image Annotation of People’s Positions</a></h3>
-      <p>Bacchin, A., Barcellona, L., <strong>Shamsizadeh, S.</strong>, Olivastri, E., Pretto, A., Menegatti, E.</p>
-      <p class="pub__venue">IEEE ICRA 2024 · Yokohama · pp. 17006–17012 · doi:10.1109/ICRA57147.2024.10610347</p>
-    </div>
-  </article>
 </section>
 
 <section class="section" aria-labelledby="skills-title">

@@ -1,0 +1,91 @@
+- title: TISHTAR — Autonomous Mobile Robot
+  domain: Autonomous robotics
+  summary: A four-wheeled robot built from scratch to explore perception, localization and navigation on real hardware.
+  technologies: [ROS 2, Raspberry Pi, STM32, LiDAR, IMU, camera]
+  cover: /images/projects/tishtar.webp
+  alt: Conceptual diagram of the robot sensing, localizing and navigating
+  links:
+    - {label: Project and roadmap, url: /tishtar/}
+
+- title: Applied AI & Robotics Lab — Playground
+  domain: Applied AI and robotic perception
+  summary: An independent lab for hands-on experiments in computer vision, sensor fusion, navigation and model deployment.
+  technologies: [Python, PyTorch, ROS 2, Gazebo]
+  cover: /images/projects/playground.webp
+  alt: "Conceptual diagram of perception, inference and robot planning"
+  links:
+    - {label: Explore Playground, url: 'https://playground.sepideh.io/'}
+    - {label: Lab repository, url: 'https://github.com/sepideh-shamsizadeh/applied-ai-robotics-lab'}
+
+- title: MiniDL — Deep Learning Framework from Scratch
+  domain: Deep learning
+  summary: An independent project that builds a deep learning framework to learn how its core components work.
+  technologies: [Python]
+  cover: /images/projects/minidl.webp
+  alt: Conceptual diagram of inputs passing through network layers to produce outputs
+  links:
+    - {label: Source code, url: 'https://github.com/sepideh-shamsizadeh/deep-learning'}
+
+- title: DRILL — Technical Interview Training Platform
+  domain: Technical interview practice
+  summary: A browser-based practice platform for flashcards, coding and technical communication, with progress saved locally.
+  technologies: [JavaScript, HTML, CSS]
+  cover: /images/projects/drill.webp
+  alt: Conceptual diagram of the practice and review cycle
+  links:
+    - {label: Open DRILL, url: /drill/}
+    - {label: Communication practice, url: /drill/communication/}
+
+- title: Multimodal Animal Behavior Recognition
+  domain: Professional research · ZHAW
+  summary: Self-supervised learning for animal behavior recognition from motion and location data.
+  technologies: [Self-supervised learning, IMU, GNSS]
+  cover: /images/projects/sensor-fusion.webp
+  alt: Conceptual diagram of motion and location data used for behavior recognition
+  links:
+    - {label: Research experience, url: '/story/#professional-experience'}
+
+- title: Clinical Coding Assistant
+  domain: Professional engineering · Kavosh
+  summary: A clinical coding assistant developed from research through deployment.
+  technologies: [Natural language processing, BiLSTM, attention]
+  cover: /images/projects/clinical-coding.webp
+  alt: Conceptual diagram of clinical text and a model producing a code suggestion
+  links:
+    - {label: Professional experience, url: '/story/#professional-experience'}
+
+- title: Mobile Manipulation with ROS
+  domain: Academic robotics
+  summary: Navigation and obstacle avoidance for a mobile manipulator, with QR-code recognition for pick-and-place and delivery.
+  technologies: [ROS, Gazebo, RViz, Python]
+  cover: /images/projects/mobile-robotics.webp
+  alt: Conceptual workflow for navigation, recognition and pick-and-place
+  links:
+    - {label: Academic background, url: '/story/#academic-background'}
+
+- title: Industrial Robot Manipulation
+  domain: Academic robotics
+  summary: Pick-and-place, conveyor handling and sorting on a physical industrial arm.
+  technologies: [Adept V+, tool frames, grasping]
+  cover: /images/projects/industrial-arm.webp
+  alt: Conceptual workflow for picking, moving and sorting objects
+  links:
+    - {label: Academic background, url: '/story/#academic-background'}
+
+- title: Structure from Motion
+  domain: 3D computer vision
+  summary: A C++ reconstruction pipeline using image feature matching, multi-view geometry and bundle adjustment.
+  technologies: [C++, SIFT, Ceres Solver]
+  cover: /images/blog/structure-from-motion.jpg
+  alt: Illustration from the Structure from Motion article
+  links:
+    - {label: Technical article, url: /3d-reconstruction-structure-from-motion/}
+
+- title: PointNet Semantic Segmentation
+  domain: 3D computer vision
+  summary: Semantic segmentation of LiDAR point clouds using PointNet and SemanticKITTI.
+  technologies: [Python, PyTorch, SemanticKITTI]
+  cover: /images/blog/pointnet-segmentation.jpg
+  alt: Illustration from the PointNet segmentation article
+  links:
+    - {label: Technical article, url: /pointnet-segmentation-python-pytorch/}

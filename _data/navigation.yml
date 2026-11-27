@@ -1,21 +1,25 @@
-# Main navigation. The home page is reached through the name in the header.
 main:
-  - title: "story"
+  - title: About
     url: /story/
 
-  - title: "tishtar"
-    url: /tishtar/
+  - title: Projects
+    url: /projects/
+    children:
+      - title: TISHTAR
+        url: /tishtar/
+      - title: Playground
+        url: https://playground.sepideh.io/
+      - title: MiniDL
+        url: https://github.com/sepideh-shamsizadeh/deep-learning
+      - title: DRILL
+        url: /drill/
 
-  - title: "blog"
-    url: /year-archive/
+  - title: Publications
+    url: /publications/
 
-  - title: "Playground"
-    url: https://playground.sepideh.io/
+  - title: Blog
+    url: /blog/
+    active: /year-archive/
 
-  - title: "DRILL"
-    url: /drill/
-
-  - title: "cv.pdf"
+  - title: CV
     url: /files/Sepideh-Shamsizadeh-CV.pdf
-
-# Not in the menu, still published: /portfolio/ (its two items are also blog posts).

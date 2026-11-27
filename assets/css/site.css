@@ -777,10 +777,6 @@ a.card:hover { border-color: var(--line-strong); color: inherit; transform: tran
 @media (max-width: 640px) {
   :root { --gutter: 16px; }
   #main.wrap { padding-top: 40px; padding-bottom: 72px; }
-  .site-header__inner { height: auto; padding-top: 10px; padding-bottom: 8px; flex-wrap: wrap; gap: 6px 12px; }
-  .site-nav { position: relative; order: 3; width: 100%; margin-left: -11px; flex-wrap: wrap; }
-  .site-nav__group { position: static; }
-  .brand__tag { display: none; }
   .section { margin-top: 72px; }
   .metrics { grid-template-columns: 1fr; }
   .metric + .metric { border-left: 0; border-top: 1px solid var(--line); }
@@ -832,10 +828,6 @@ body::before {
 }
 
 /* nav as paths */
-.site-nav a, .site-nav summary { font-family: var(--mono); font-size: 0.8rem; font-weight: 400; letter-spacing: -0.01em; }
-.site-nav a::before, .site-nav summary::before { content: "./"; content: "./" / ""; color: var(--faint); }
-.site-nav a[aria-current="page"], .site-nav__group[data-active] summary { color: var(--accent-ink); }
-.brand__name { font-family: var(--display); font-size: 1.02rem; }
 
 /* section labels as code comments */
 .section-head .eyebrow { text-transform: lowercase; letter-spacing: 0.02em; }
@@ -971,6 +963,21 @@ a.card:hover, .post-card:hover { border-color: var(--accent); box-shadow: 0 0 0 
 }
 @media (max-width: 640px) {
   .gitlog > li { padding-left: 32px; }
-  .site-nav a, .site-nav summary { padding: 6px 8px; }
 }
 @media (hover: none) { .glow { display: none; } }
+
+/* Projects and publications use the blog's editorial collection styles. */
+.project-grid .post-card h2 {
+  margin: 0;
+  font: 600 1.16rem/1.35 var(--display);
+}
+.project-grid .post-card h2 a { color: var(--ink); text-decoration: none; }
+.project-grid .post-card h2 a:hover { color: var(--accent-ink); text-decoration: underline; }
+.project-grid .post-card__meta, .publication-venue, .publication-details { color: var(--muted); }
+.project-grid .project-stack { font-size: .85rem; }
+.project-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 0; padding: 0; list-style: none; }
+.project-links a { font-size: .91rem; }
+.publication-list article { border-top: 1px solid var(--line); padding-block: 24px; }
+.publication-list h2 { margin: 6px 0 12px; font: 600 clamp(1.25rem, 4vw, 1.65rem)/1.3 var(--display); }
+.publication-list .publication-venue, .publication-list .publication-authors, .publication-list .publication-details { margin: 0 0 8px; }
+.publication-list .publication-details { font-size: .9rem; }
