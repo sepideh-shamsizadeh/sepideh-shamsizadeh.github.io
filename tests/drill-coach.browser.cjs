@@ -74,7 +74,7 @@ for (const theme of ["dark", "light"]) {
         const path = join(build, url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname);
         try {
           if (url.pathname === pagePath) {
-            const html = (await fs.readFile(path, "utf8")).replace('data-coach-api=""', `data-coach-api="${backend}"`);
+            const html = (await fs.readFile(path, "utf8")).replace(/data-coach-api="[^"]*"/, `data-coach-api="${backend}"`);
             return route.fulfill({ contentType: "text/html", body: html });
           }
           if ((await fs.stat(path)).isFile()) return route.fulfill({ path });

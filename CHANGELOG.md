@@ -12,6 +12,9 @@
 - Added a command-line recovery procedure for the shutdown latch. It requires maintenance mode, a one-time admin secret, and reconciliation against OpenAI's reported spend. It never lowers the ledger and keeps an audit trail.
 - Pinned the Standard processing tier, capped outstanding sign-in challenges, and separated the HMAC domain for follow-up seals. Model pricing was verified against OpenAI's published Standard rates.
 - Saved only scores and review metadata in the separate `drill-ai-coach-v1` browser key. Answers and feedback are never written to browser storage, the database, or logs.
+- Fixed Google sign-in on Cloudflare Workers, which reject `fetch({ redirect: "error" })`. Google key and OpenAI requests now use manual redirects that fail closed, and signing keys refresh once on rotation.
+- Reported each sign-in failure separately (Google token with reason, verifier unavailable, expired or reused sign-in attempt, wrong account, expired session) instead of always showing "sign-in expired".
+- Connected the production site to the coach Worker at `https://drill-coach.sepideh-io.workers.dev`, and kept preview deployments disconnected.
 - Added mocked unit and browser tests, a catalog consistency check in CI, and [setup instructions](docs/drill-coach-setup.md).
 
 ## Unreleased
