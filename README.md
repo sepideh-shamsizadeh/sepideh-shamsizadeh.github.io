@@ -42,3 +42,13 @@ bundle exec jekyll serve --config _config.yml,_config.dev.yml
 ```
 
 Pushing to `master` builds and deploys the site with GitHub Actions (`.github/workflows/jekyll-docker.yml`).
+
+## DRILL Technical Communication
+
+Open **Technical Communication** from `/drill/`. Practice by category or topic, or choose a random prompt. Try an answer aloud or in writing, then open the structure hint and example as needed. Rate each answer yourself and save it to unlock the next prompt.
+
+Daily practice includes a configurable 20-minute plan and a 5-minute quick plan. Each step has a suggested time budget and a timer you can start yourself. Save the review answer to complete the session. The module also includes 12 lessons and a progress view with skill averages, questions to revisit, a practice streak, and the past seven days of activity.
+
+Communication data uses the versioned `drill-communication-v1` browser storage key. Saved attempts, lesson checkmarks, session settings and the current session step persist on refresh. Draft answers and running timers last for the current page visit. Progress lives in the current browser profile and site origin. The module uses static assets and self-assessment, with no backend, accounts, transcription, or paid APIs.
+
+Run the model tests with `node --test tests/drill-communication.test.cjs`. For browser tests, start the Jekyll preview and run `node --test tests/drill-communication.browser.cjs` with Playwright available. Set `PLAYWRIGHT_PATH` for an external install, `CHROME_PATH` to use an installed Chrome binary, and `DRILL_BASE_URL` to override the default `http://localhost:4000`.
