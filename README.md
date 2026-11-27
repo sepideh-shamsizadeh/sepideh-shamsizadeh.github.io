@@ -49,10 +49,38 @@ Open **Technical Communication** from `/drill/`. Practice by category or topic, 
 
 Start the 20-minute daily plan with the displayed durations, or open **Customize session durations** to adjust them. A 5-minute quick plan is also available. Each step has a suggested time budget and a timer you can start yourself. Save the review answer to complete the session. The module includes 12 lessons with examples and exercises, and a progress view with skill averages, questions to revisit, a practice streak, and the past seven days of activity.
 
-Communication data uses the versioned `drill-communication-v1` browser storage key. Saved attempts, lesson checkmarks, session settings and the current session step persist on refresh. Draft answers and running timers last for the current page visit. Progress lives in the current browser profile and site origin. The module uses static assets and self-assessment, with no backend, accounts, transcription, or paid APIs.
+Communication data uses the versioned `drill-communication-v1` browser storage key. Saved attempts, lesson checkmarks, session settings and the current session step persist on refresh. Written answers, notes and running timers last for the current page visit. Progress lives in the current browser profile and site origin. The module uses static assets and self-assessment, with no backend, accounts, transcription, or paid APIs.
 
 Run the model tests with `node --test tests/drill-communication.test.cjs`. For browser tests, start Jekyll with both `_config.yml` and `_config.dev.yml` so the shared site assets resolve to the local preview. Run `node --test tests/drill-communication.browser.cjs` with Playwright available. Set `PLAYWRIGHT_PATH` for an external install, `CHROME_PATH` to use an installed Chrome binary, and `DRILL_BASE_URL` to override the default `http://localhost:4000`.
 
 To test a rendered Jekyll build without a server, set `DRILL_BUILD_DIR` to the output directory and `DRILL_BASE_URL` to the origin configured in that build. Omit `DRILL_BUILD_DIR` to test a running preview or production. Set `DRILL_SCREENSHOT_DIR` to save example desktop and mobile screenshots during the run.
 
 When changing the DRILL page scripts or styles, update their version query strings in both DRILL entry pages so browsers refetch compatible assets after deployment.
+
+## Deploying the site to Vercel
+
+The GitHub repository and Jekyll remain the source of the site. GitHub Pages continues to serve the old hostname during the migration. The Vercel build keeps the same public paths and generates production SEO metadata for `https://sepideh.io`.
+
+Build a preview with Ruby 3.3 and Node installed:
+
+```sh
+bundle install
+bash scripts/build-vercel.sh preview
+node tests/vercel-output.cjs preview
+```
+
+Use `production` instead of `preview` to build the production artifact. The output lives under `.vercel/output`. Preview deployments send `X-Robots-Tag: noindex, nofollow` and HTML robots metadata.
+
+Before the first hosted preview, link a Vercel Hobby project to the Actions-based deployment path. Keep Vercel's separate Git auto-deploy trigger off to avoid duplicate deployments. Set the repository Actions variables `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_PREVIEW_ENABLED=true`, and set `VERCEL_TOKEN` using GitHub's secret manager. Trusted pull requests and manual workflow runs can deploy previews. Fork PRs run build checks without deploy credentials.
+
+Leave `VERCEL_PRODUCTION_ENABLED` unset until cutover approval. Then enable it and run the workflow on `master`. Assign `sepideh.io` to the verified project using the exact apex DNS instructions in Vercel. Verify HTTPS, the homepage, existing links, and DRILL before updating the old site's migration banner. Keep GitHub Pages available so users can export progress. The old hostname can serve a migration banner or static forwarding pages after verification.
+
+## Transfer DRILL progress
+
+Open **Transfer progress** on the old site and download the JSON file. On the new site, open **Transfer progress**, select the file, review the summary, and choose **Import progress**. The file stays on your device. Close other DRILL tabs before importing.
+
+The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, and the saved theme. It excludes written answers, personal notes, and unfinished sessions. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
+
+When both origins have records, destination ratings and settings win by default. You can choose the file's ratings and settings for conflicts. Daily counts retain the larger value, and overlapping communication histories are combined without counting matching metadata twice. An interrupted import can be retried using the same file. Keep the source file until you have verified the new site.
+
+For the two-origin browser regression test, build the Pages and Vercel artifacts, then run `node --test tests/drill-transfer.browser.cjs` with `DRILL_OLD_BUILD_DIR` pointing to the Pages output and `DRILL_BUILD_DIR` pointing to the Vercel static output. The existing Playwright and Chrome environment options apply.
