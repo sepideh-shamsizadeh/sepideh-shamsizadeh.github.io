@@ -1,9 +1,9 @@
 # sepideh-shamsizadeh.github.io
 
 Personal website of Sepideh Shamsizadeh — Physical AI & Robotics Engineer, Zurich.
-Live at **https://sepideh-shamsizadeh.github.io**.
+Live at **https://sepideh.io** on Vercel Hobby. The [legacy GitHub Pages site](https://sepideh-shamsizadeh.github.io/) remains available, including [DRILL progress export](https://sepideh-shamsizadeh.github.io/drill/transfer/).
 
-Built with Jekyll on GitHub Pages. The theme started from Academic Pages / Minimal Mistakes (MIT, see `LICENSE`) and has been redesigned.
+Built with Jekyll and deployed to Vercel, with GitHub Pages retained for migration. The theme started from Academic Pages / Minimal Mistakes (MIT, see `LICENSE`) and has been redesigned.
 
 ## Structure
 
@@ -73,11 +73,11 @@ Use `production` instead of `preview` to build the production artifact. The outp
 
 Before the first hosted preview, link a Vercel Hobby project to the Actions-based deployment path. Keep Vercel's separate Git auto-deploy trigger off to avoid duplicate deployments. Set the repository Actions variables `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_PREVIEW_ENABLED=true`, and set `VERCEL_TOKEN` using GitHub's secret manager. Trusted pull requests and manual workflow runs can deploy previews. Fork PRs run build checks without deploy credentials.
 
-Leave `VERCEL_PRODUCTION_ENABLED` unset until cutover approval. Then enable it and run the workflow on `master`. Assign `sepideh.io` to the verified project using the exact apex DNS instructions in Vercel. Verify HTTPS, the homepage, existing links, and DRILL before updating the old site's migration banner. Keep GitHub Pages available so users can export progress. The old hostname can serve a migration banner or static forwarding pages after verification.
+The production domain is attached to the `sepideh-website` Hobby project. GitHub Actions builds and checks the site on merges into `master`. To enable automatic uploads, add a Vercel deployment token as the `VERCEL_TOKEN` GitHub Actions secret, set `VERCEL_PRODUCTION_ENABLED=true`, and run the workflow on `master` once to verify the deployment. Keep GitHub Pages available for visitors and progress export.
 
 ## Transfer DRILL progress
 
-Open **Transfer progress** on the old site and download the JSON file. On the new site, open **Transfer progress**, select the file, review the summary, and choose **Import progress**. The file stays on your device. Close other DRILL tabs before importing.
+Download the JSON file from [Transfer progress on GitHub Pages](https://sepideh-shamsizadeh.github.io/drill/transfer/). On [Transfer progress at sepideh.io](https://sepideh.io/drill/transfer/), select the file, review the summary, and choose **Import progress**. The file stays on your device. Close other DRILL tabs before importing.
 
 The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, and the saved theme. It excludes written answers, personal notes, and unfinished sessions. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
 

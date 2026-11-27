@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Prepare the Jekyll website for Vercel Hobby while keeping the GitHub Pages deployment available.
+- Launch the Jekyll website at `https://sepideh.io` on Vercel Hobby and retain the GitHub Pages site for progress transfer.
 - Add local export and import for DRILL ratings, coding progress, lesson and session history, and preferences.
 - Save only metadata for new communication attempts. Keep new written answers and notes in memory.
 
