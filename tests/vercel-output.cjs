@@ -22,5 +22,6 @@ assert.equal(version, 3);
 assert.equal(routes.some(route => route.headers?.["X-Robots-Tag"]), preview);
 assert.ok(routes.some(route => route.status === 308 && route.headers.Location === "/files/Sepideh-Shamsizadeh-CV.pdf"));
 assert.ok(routes.some(route => route.status === 308 && route.headers.Location.startsWith("https://medium.com/")));
+assert.ok(routes.some(route => route.src === "^/$" && route.dest === "/index.html"));
 assert.equal(routes.at(-1).status, 404);
 console.log(`Verified ${preview ? "preview" : "production"} routing and metadata.`);

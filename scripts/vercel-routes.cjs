@@ -13,6 +13,7 @@ for (const [path, destination] of Object.entries(aliases)) {
   const pattern = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   routes.push({ src: `^${pattern.replace(/\/$/, "")}${path.endsWith("/") ? "/?" : ""}$`, status: 308, headers: { Location: location } });
 }
+routes.push({ src: "^/$", dest: "/index.html" });
 routes.push({ src: "^/(.*)/$", dest: "/$1/index.html", check: true });
 routes.push({ handle: "filesystem" });
 routes.push({ src: "^/(.*)$", dest: "/$1/index.html", check: true });
