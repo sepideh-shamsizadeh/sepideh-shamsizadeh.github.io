@@ -8,6 +8,9 @@
 - Added answer revision and comparison in the active session, including comparison against the earlier evaluation on the daily review step.
 - Added spending controls: atomic reservations against a $3 monthly budget, 10 paid evaluations per Zurich day, one evaluation at a time, duplicate-request rejection, persistent token and cost accounting, a server-side `COACH_MODE` off switch, and an automatic latch when reported usage exceeds the reservation.
 - Added usage and budget meters, and a per-question AI score summary in Progress.
+- Added AI Coach scores and review dates to progress export and import, merged by evaluation ID. Answers, feedback and notes stay excluded.
+- Added a command-line recovery procedure for the shutdown latch. It requires maintenance mode, a one-time admin secret, and reconciliation against OpenAI's reported spend. It never lowers the ledger and keeps an audit trail.
+- Pinned the Standard processing tier, capped outstanding sign-in challenges, and separated the HMAC domain for follow-up seals. Model pricing was verified against OpenAI's published Standard rates.
 - Saved only scores and review metadata in the separate `drill-ai-coach-v1` browser key. Answers and feedback are never written to browser storage, the database, or logs.
 - Added mocked unit and browser tests, a catalog consistency check in CI, and [setup instructions](docs/drill-coach-setup.md).
 

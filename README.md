@@ -61,7 +61,7 @@ In Practice and in daily or quick sessions, open **AI Communication Coach** unde
 
 Only scores and review metadata are saved, in the separate `drill-ai-coach-v1` browser key. The Progress view lists them per attempt and per question, and each can be deleted. Written answers, feedback, revised answers and generated examples stay in page memory and are cleared on navigation, sign-out or reload. The Cloudflare Worker in `backend/drill-coach/` stores only operational data in SQLite: one-time sign-in nonces, hashed sessions, rate-limit counters and per-evaluation token and cost accounting. It never stores answer text.
 
-The coach is off until it is configured. See [DRILL AI Coach setup](docs/drill-coach-setup.md) for the Google Sign-In client, the Cloudflare deployment, the emergency off switch and the spending limits.
+The coach is off until it is configured. See [DRILL AI Coach setup](docs/drill-coach-setup.md) for the Google Sign-In client, the Cloudflare deployment, the emergency off switch, the spending limits, and the administrative procedure for recovering from the automatic shutdown latch.
 
 Run the coach tests with `node --test tests/drill-coach.test.mjs`. They use an in-memory SQLite ledger and mocked Google and OpenAI responses, and never contact a paid API. After changing the DRILL question bank, run `node scripts/drill-catalog.cjs` to regenerate the Worker catalog. CI checks it with `--check`. For the browser test, build the site and run `node --test tests/drill-coach.browser.cjs` with `DRILL_BUILD_DIR` set, plus the Playwright and Chrome options above. The test serves the Worker logic in-process with a mock Google Sign-In.
 
@@ -89,7 +89,7 @@ The production domain is attached to the `sepideh-website` Hobby project. GitHub
 
 Download the JSON file from [Transfer progress on GitHub Pages](https://sepideh-shamsizadeh.github.io/drill/transfer/). On [Transfer progress at sepideh.io](https://sepideh.io/drill/transfer/), select the file, review the summary, and choose **Import progress**. The file stays on your device. Close other DRILL tabs before importing.
 
-The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, and the saved theme. It excludes written answers, personal notes, and unfinished sessions. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
+The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, AI Coach scores with their review dates, and the saved theme. It excludes written answers, personal notes, AI feedback, improved answers, and unfinished sessions. AI Coach rows pass through the same allowlist the coach uses to save them, so extra fields in a stored or imported file are dropped. The export also works as a backup on sepideh.io. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
 
 When both origins have records, destination ratings and settings win by default. You can choose the file's ratings and settings for conflicts. Daily counts retain the larger value, and overlapping communication histories are combined without counting matching metadata twice. An interrupted import can be retried using the same file. Keep the source file until you have verified the new site.
 
