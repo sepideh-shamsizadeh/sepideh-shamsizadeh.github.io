@@ -1,2 +1,6 @@
 url: https://sepideh.io
 baseurl: ""
+
+# DRILL AI Coach Worker (Cloudflare Workers Free). The Worker accepts only https://sepideh.io,
+# and its COACH_MODE decides whether evaluation is off, mocked or live.
+drill_coach_api: https://drill-coach.sepideh-io.workers.dev

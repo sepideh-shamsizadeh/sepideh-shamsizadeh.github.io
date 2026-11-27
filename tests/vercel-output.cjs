@@ -17,6 +17,10 @@ for (const path of ["404.html", "cv/index.html", "files/Sepideh-Shamsizadeh-CV.p
 assert.match(read("robots.txt"), /^Sitemap: https:\/\/sepideh\.io\/sitemap.xml/m);
 assert.match(read("sitemap.xml"), /<loc>https:\/\/sepideh\.io\/drill\/<\/loc>/);
 assert.match(read("feed.xml"), /https:\/\/sepideh\.io/);
+assert.equal(existsSync(`${output}/static/backend`), false);
+// Production connects the AI Coach to its Worker; previews (not an allowed origin) stay disconnected.
+const coachApi = read("drill/communication/index.html").match(/data-coach-api="([^"]*)"/)?.[1];
+assert.equal(coachApi, preview ? "" : "https://drill-coach.sepideh-io.workers.dev");
 const { version, routes } = JSON.parse(readFileSync(`${output}/config.json`, "utf8"));
 assert.equal(version, 3);
 assert.equal(routes.some(route => route.headers?.["X-Robots-Tag"]), preview);

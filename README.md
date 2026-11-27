@@ -55,6 +55,16 @@ Run the model tests with `node --test tests/drill-communication.test.cjs`. For b
 
 To test a rendered Jekyll build without a server, set `DRILL_BUILD_DIR` to the output directory and `DRILL_BASE_URL` to the origin configured in that build. Omit `DRILL_BUILD_DIR` to test a running preview or production. Set `DRILL_SCREENSHOT_DIR` to save example desktop and mobile screenshots during the run.
 
+### AI Communication Coach (optional, owner-only)
+
+In Practice and in daily or quick sessions, open **AI Communication Coach** under the answer box. Sign in with the authorized Google account, then choose **Evaluate my answer**. Nothing is sent until you click. Feedback covers eight rubric scores with reasons, technical and communication strengths and gaps, English corrections, a suggested structure, an improved answer, and one follow-up question. You can revise and compare attempts. Within a daily session, the review step compares your revised answer with your earlier evaluation of the same question. Meters show the day's evaluations and the month's estimated spending.
+
+Only scores and review metadata are saved, in the separate `drill-ai-coach-v1` browser key. The Progress view lists them per attempt and per question, and each can be deleted. Written answers, feedback, revised answers and generated examples stay in page memory and are cleared on navigation, sign-out or reload. The Cloudflare Worker in `backend/drill-coach/` stores only operational data in SQLite: one-time sign-in nonces, hashed sessions, rate-limit counters and per-evaluation token and cost accounting. It never stores answer text.
+
+The coach is off until it is configured. See [DRILL AI Coach setup](docs/drill-coach-setup.md) for the Google Sign-In client, the Cloudflare deployment, the emergency off switch, the spending limits, and the administrative procedure for recovering from the automatic shutdown latch.
+
+Run the coach tests with `node --test tests/drill-coach.test.mjs`. They use an in-memory SQLite ledger and mocked Google and OpenAI responses, and never contact a paid API. After changing the DRILL question bank, run `node scripts/drill-catalog.cjs` to regenerate the Worker catalog. CI checks it with `--check`. For the browser test, build the site and run `node --test tests/drill-coach.browser.cjs` with `DRILL_BUILD_DIR` set, plus the Playwright and Chrome options above. The test serves the Worker logic in-process with a mock Google Sign-In.
+
 When changing the DRILL page scripts or styles, update their version query strings in both DRILL entry pages so browsers refetch compatible assets after deployment.
 
 ## Deploying the site to Vercel
@@ -79,7 +89,7 @@ The production domain is attached to the `sepideh-website` Hobby project. GitHub
 
 Download the JSON file from [Transfer progress on GitHub Pages](https://sepideh-shamsizadeh.github.io/drill/transfer/). On [Transfer progress at sepideh.io](https://sepideh.io/drill/transfer/), select the file, review the summary, and choose **Import progress**. The file stays on your device. Close other DRILL tabs before importing.
 
-The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, and the saved theme. It excludes written answers, personal notes, and unfinished sessions. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
+The transfer includes flashcard ratings and daily counts, coding and LeetCode status, Technical Communication scores and completed sessions, lessons, AI Coach scores with their review dates, and the saved theme. It excludes written answers, personal notes, AI feedback, improved answers, and unfinished sessions. AI Coach rows pass through the same allowlist the coach uses to save them, so extra fields in a stored or imported file are dropped. The export also works as a backup on sepideh.io. New self-assessments save only scores and related metadata. Legacy notes on the old origin stay there.
 
 When both origins have records, destination ratings and settings win by default. You can choose the file's ratings and settings for conflicts. Daily counts retain the larger value, and overlapping communication histories are combined without counting matching metadata twice. An interrupted import can be retried using the same file. Keep the source file until you have verified the new site.
 

@@ -22,7 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test tests/drill-communication.test.cjs tests/drill-transfer.test.cjs
+      - run: node scripts/drill-catalog.cjs --check
+      - run: node --test tests/drill-communication.test.cjs tests/drill-transfer.test.cjs tests/drill-coach.test.mjs
       - name: Build preview
         run: bash scripts/build-vercel.sh preview
       - name: Check generated routes and metadata

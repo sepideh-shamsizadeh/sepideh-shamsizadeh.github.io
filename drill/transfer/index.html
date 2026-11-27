@@ -12,7 +12,7 @@ sitemap: false
       <h1 class="ph__title">Transfer DRILL progress</h1>
       <p class="ph__lead">Download your progress on the old site and import the file on the new site in the same browser profile.</p>
     </header>
-    <p>Only ratings, completion history and preferences are copied. Written answers, notes and unfinished sessions stay on the original site. The file stays on your device.</p>
+    <p>Only ratings, AI assessment scores, completion history and preferences are copied. Written answers, notes, AI feedback and unfinished sessions are never included. The file stays on your device, and you can also keep it as a backup.</p>
     <div class="acts">
       <button type="button" id="transfer-export" class="solid" disabled>Download progress</button>
       {% if site.url == 'https://sepideh.io' %}
@@ -36,5 +36,6 @@ sitemap: false
     </section>
   </section>
 </main>
-<script src="{{ '/drill/transfer/transfer.js' | relative_url }}?v=1" defer></script>
-<script src="{{ '/drill/transfer/preview.js' | relative_url }}?v=1" defer></script>
+<script src="{{ '/drill/communication/coach-progress.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/transfer/transfer.js' | relative_url }}?v=2" defer></script>
+<script src="{{ '/drill/transfer/preview.js' | relative_url }}?v=2" defer></script>

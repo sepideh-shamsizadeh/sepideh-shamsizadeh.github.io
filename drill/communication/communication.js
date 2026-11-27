@@ -48,12 +48,16 @@
   }
 
   function render(focus = false) {
+    window.DrillCoach?.clear();
     clearInterval(interval);
     for (const button of root.querySelectorAll("[data-view]")) {
       button.setAttribute("aria-pressed", String(button.dataset.view === view));
     }
     if (view === "lessons") renderLessons();
-    if (view === "progress") renderProgress();
+    if (view === "progress") {
+      renderProgress();
+      window.DrillCoach?.showProgress(panel, bank);
+    }
     if (view === "practice") renderPractice();
     if (view === "daily") renderDaily();
     if (focus) panel.querySelector("[data-heading]")?.focus();
@@ -176,6 +180,7 @@
           <label class="comm-block">Written answer (optional)
             <textarea name="answer" rows="4" placeholder="Answer aloud or write here.">${escape(draft.answer ?? "")}</textarea>
           </label>
+          <div class="comm-block" id="comm-coach"></div>
           <button class="comm-disclosure" type="button" aria-controls="comm-example" aria-expanded="${Boolean(draft.example)}">${draft.example ? "Hide example answer" : "Show example answer"}</button>
           <div id="comm-example" class="comm-reveal" ${draft.example ? "" : "hidden"}>
             <p>${escape(current.example)}</p>
@@ -210,6 +215,7 @@
       };
     }
     const form = mount.querySelector("form");
+    window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, { session: session?.id });
     const timer = form.elements.duration;
     const start = mount.querySelector("#comm-start");
     const stop = mount.querySelector("#comm-stop");

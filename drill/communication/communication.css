@@ -159,6 +159,9 @@
 }
 .communication .comm-scores dd { margin: 0; text-align: end; }
 .communication [data-retry] { text-align: start; margin-bottom: .3rem; }
+.communication .comm-coach-meter { margin-block: .5rem; font-weight: 500; }
+.communication .comm-coach-meter meter { width: 100%; height: .75rem; }
+.communication :is(#comm-coach, .comm-coach-questions) li { overflow-wrap: anywhere; }
 
 @media (max-width: 620px) {
   .communication .comm-lesson-grid { grid-template-columns: 1fr; }

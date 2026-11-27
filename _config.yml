@@ -41,6 +41,7 @@ exclude:
   - blog/robotics/_posts/2026-11-24-designing_self-driving_car.md
   - .vercel
   - scripts
+  - backend
   - _config.vercel.yml
   - _config.preview.yml
   - .bundle

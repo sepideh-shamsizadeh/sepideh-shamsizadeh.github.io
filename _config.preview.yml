@@ -1,1 +1,3 @@
 deployment_preview: true
+# Preview hosts are not an allowed Worker origin, so keep the AI Coach disconnected there.
+drill_coach_api: ""
