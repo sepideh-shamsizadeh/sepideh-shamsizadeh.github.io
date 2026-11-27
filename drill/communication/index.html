@@ -1,0 +1,31 @@
+---
+layout: default
+title: Technical Communication
+permalink: /drill/communication/
+---
+
+<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}">
+<link rel="stylesheet" href="{{ '/drill/communication/communication.css' | relative_url }}">
+
+<main id="main" class="wrap drill">
+  <section id="communication" class="band communication">
+    <header class="ph">
+      <a href="{{ '/drill/' | relative_url }}">Daily Interview Drill</a>
+      <h1 class="ph__title">Technical Communication</h1>
+      <p class="ph__lead">Practice explaining your technical work in interviews.</p>
+    </header>
+    <nav class="chips" aria-label="Technical Communication sections">
+      <button class="chip" data-view="practice" aria-pressed="true">Practice</button>
+      <button class="chip" data-view="daily" aria-pressed="false">Daily practice</button>
+      <button class="chip" data-view="lessons" aria-pressed="false">Lessons</button>
+      <button class="chip" data-view="progress" aria-pressed="false">Progress</button>
+    </nav>
+    <p role="status" id="communication-status"></p>
+    <div id="communication-view"></div>
+  </section>
+</main>
+
+<script src="{{ '/drill/communication/content.js' | relative_url }}" defer></script>
+<script src="{{ '/drill/communication/model.js' | relative_url }}" defer></script>
+<script src="{{ '/drill/communication/communication.js' | relative_url }}" defer></script>
+<script src="{{ '/drill/drill.js' | relative_url }}" defer></script>

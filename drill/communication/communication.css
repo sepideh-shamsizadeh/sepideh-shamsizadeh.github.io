@@ -1,0 +1,39 @@
+.drill .communication .ph > a { color: var(--accent-ink); }
+.drill .communication .ph { margin-bottom: 1.5rem; }
+.communication #communication-status:empty { display: none; }
+.drill .communication .card { min-height: 0; }
+.communication .comm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: .75rem 1rem;
+}
+.communication label { display: grid; align-content: start; gap: .35rem; }
+.communication :is(textarea, input[type="number"]) {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: .55rem .7rem;
+  min-width: 0;
+}
+.communication textarea { width: 100%; resize: vertical; }
+.communication input[type="number"] { width: 6rem; min-height: 44px; }
+.communication :is(fieldset, .comm-example, .comm-block) { margin: 1rem 0 0; }
+.communication fieldset { border: 1px solid var(--line-strong); padding: 1rem; min-inline-size: 0; }
+.communication legend { padding-inline: .4rem; font-weight: 700; }
+.communication summary { cursor: pointer; padding-block: .5rem; }
+.communication .comm-lesson { border-bottom: 1px solid var(--line); padding: .35rem 0 1rem; }
+.communication .comm-lesson summary { min-height: 44px; font-weight: 700; }
+.communication .comm-example { border-top: 1px solid var(--line-strong); padding-top: 1rem; }
+.communication .comm-example p { max-width: 70ch; }
+.communication .comm-lesson label { display: flex; align-items: center; gap: .55rem; width: fit-content; min-height: 44px; }
+.communication .comm-lesson input { width: 1.1rem; height: 1.1rem; }
+.communication .timer .clock { font-size: 1.65rem; }
+.communication :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+.communication [hidden] { display: none !important; }
+.communication .comm-table { overflow-x: auto; }
+.communication .comm-table td:first-child { white-space: nowrap; }
+.communication .comm-stats { margin-block: 1rem; }
+.communication .comm-current { font-size: .95rem; font-weight: 650; }
+.communication .comm-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
