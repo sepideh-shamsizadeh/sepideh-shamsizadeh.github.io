@@ -7,7 +7,8 @@
 - Added structured feedback from the OpenAI Responses API (`gpt-5.4-mini`, strict JSON schema, `store: false`): eight rubric scores with reasons, technical and communication feedback, English corrections, a suggested structure, an improved answer, and a signed follow-up question.
 - Added answer revision and comparison in the active session, including comparison against the earlier evaluation on the daily review step.
 - Added spending controls: atomic reservations against a $3 monthly budget, 10 paid evaluations per Zurich day, one evaluation at a time, duplicate-request rejection, persistent token and cost accounting, a server-side `COACH_MODE` off switch, and an automatic latch when reported usage exceeds the reservation.
-- Added usage and budget meters, and a per-question AI score summary in Progress.
+- Added a per-question AI score summary in Progress.
+- Simplified the coach interface around learning. It shows the overall score, prioritized improvements, compact skill bars, collapsible detailed feedback, and one row of actions. Usage, cost, token and model details moved to a collapsed, owner-only **AI Coach settings** section in Progress. Limits and pauses now show one plain "temporarily unavailable" message, with a mock badge and a short privacy notice. Spending, security and privacy controls are unchanged.
 - Added AI Coach scores and review dates to progress export and import, merged by evaluation ID. Answers, feedback and notes stay excluded.
 - Added a command-line recovery procedure for the shutdown latch. It requires maintenance mode, a one-time admin secret, and reconciliation against OpenAI's reported spend. It never lowers the ledger and keeps an audit trail.
 - Pinned the Standard processing tier, capped outstanding sign-in challenges, and separated the HMAC domain for follow-up seals. Model pricing was verified against OpenAI's published Standard rates.
