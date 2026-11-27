@@ -1,4 +1,4 @@
-/* Site-wide behaviour: theme toggle, pointer glow, typing effects, UTC clock,
+/* Site-wide behaviour: theme toggle, pointer glow, typing effects,
    and two small easter eggs (console greeting, Konami code). */
 (function () {
   "use strict";
@@ -91,18 +91,6 @@
     }, { threshold: 0.4 });
     obs.observe(pre);
   });
-
-  /* ---- UTC clock in the footer ---- */
-  var utc = document.querySelector(".utc");
-  if (utc) {
-    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
-    var clock = function () {
-      var d = new Date();
-      utc.textContent = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + ":" + pad(d.getUTCSeconds()) + " utc";
-    };
-    clock();
-    setInterval(clock, 1000);
-  }
 
   /* ---- hello, fellow nerd ---- */
   if (window.console && console.log) {
