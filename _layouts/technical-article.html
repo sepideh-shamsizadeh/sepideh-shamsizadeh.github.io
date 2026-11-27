@@ -10,6 +10,12 @@ layout: default
       {% if page.excerpt %}
       <p class="technical-article__description">{{ page.excerpt | markdownify | strip_html | strip | escape_once }}</p>
       {% endif %}
+      {% if site.playground_url == 'https://playground.sepideh.io' and page.lab_experiment %}
+        {% assign lab_slug = page.lab_experiment | slugify %}
+        {% if lab_slug != empty and lab_slug == page.lab_experiment %}
+          <p><a href="{{ site.playground_url }}/lab/{{ lab_slug | escape }}/">Explore the Playground experiment</a></p>
+        {% endif %}
+      {% endif %}
       {% assign minutes = content | strip_html | number_of_words | plus: site.words_per_minute | minus: 1 | divided_by: site.words_per_minute | at_least: 1 %}
       <p class="technical-article__meta">{% if page.date %}<time datetime="{{ page.date | date: '%Y-%m-%d' }}">{{ page.date | date: '%B %-d, %Y' }}</time>{% else %}Draft preview{% endif %} · {{ minutes }} min read</p>
     </header>
