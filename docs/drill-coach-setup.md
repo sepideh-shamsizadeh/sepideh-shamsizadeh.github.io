@@ -1,8 +1,8 @@
-# DRILL AI Coach setup (V1.1)
+# DRILL AI Coach setup (V1.2)
 
 The AI Coach is an optional, owner-only feature in DRILL Technical Communication. The static site on Vercel calls a Cloudflare Worker (`backend/drill-coach/`). The Worker checks your Google identity, enforces the spending limits in a SQLite-backed Durable Object, and calls the OpenAI Responses API.
 
-Everything below runs on free plans: Cloudflare Workers Free, Google Cloud OAuth (no billing), and Vercel Hobby. OpenAI usage is paid, and the Worker caps it at $3 per month and 10 evaluations per day.
+Everything below runs on free plans: Cloudflare Workers Free (including the Workers AI daily allocation used for transcription), Google Cloud OAuth (no billing), and Vercel Hobby. OpenAI usage is paid, and the Worker caps it at $3 per month and 10 evaluations per day. Recording spoken answers happens entirely in the browser and needs none of this.
 
 The repository ships with `COACH_MODE = "off"` and no `drill_coach_api` URL, so the public site shows "AI evaluation is unavailable" until you complete these steps.
 
@@ -88,14 +88,40 @@ npx wrangler@4.168.0 deploy --var COACH_MODE:live
 
 Run one evaluation, then compare the coach's estimate with the OpenAI usage page.
 
+## 6. Spoken-answer transcription (Workers AI, free allocation only)
+
+Transcription uses the `AI` binding in `wrangler.toml` and the model `@cf/openai/whisper-large-v3-turbo`, at 46.63 Neurons per audio minute (verified 2026-11-27). On the Workers **Free** plan, the account gets 10,000 Neurons per day, and requests beyond that fail with an error instead of being billed. There is no paid fallback.
+
+1. Confirm the plan in the Cloudflare dashboard under **Workers & Pages → Plans**. It must say **Free**. Never upgrade the plan for this feature: on Workers Paid, Workers AI usage beyond the allocation is billed.
+2. Check the mock flow first. Transcription has its own switch, `TRANSCRIPTION`, which is `"off"` by default:
+
+   ```sh
+   npx wrangler@4.168.0 deploy --var COACH_MODE:mock --var TRANSCRIPTION:on
+   ```
+
+   Record an answer, open the coach, sign in, and choose **Transcribe recording**. Mock mode returns a sample transcript without calling Workers AI.
+3. Go live with both switches:
+
+   ```sh
+   npx wrangler@4.168.0 deploy --var COACH_MODE:live --var TRANSCRIPTION:on
+   ```
+
+   Each deploy must repeat both `--var` flags. A deploy without `TRANSCRIPTION:on` turns transcription off and leaves written evaluation as configured.
+
+Workers AI processes the audio in memory. Cloudflare lists the model with zero data retention, and the Worker keeps its logs disabled. The ledger records only the request ID, a keyed fingerprint of the recording's first and last 64 KiB, the reported duration, and the estimated Neurons.
+
+Chrome's WebM recordings carry no duration the Worker can read before decoding, and the Worker never trusts a client-reported length. So every request reserves the full 5 minutes (234 Neurons) and settles with the duration Whisper reports. A reported duration over 5 minutes is refused but still counted. If the call fails, the full reservation stays counted. Twenty reservations at the maximum come to 4,680 Neurons, under half of the daily allocation.
+
 ## Emergency off switch
 
-Any of these stops paid evaluations right away:
+Any of these stops paid evaluations right away (recording in the browser keeps working):
 
 - `npx wrangler@4.168.0 deploy`, which restores the repository default `COACH_MODE = "off"`. Any deploy without `--var COACH_MODE:live` switches the coach off.
 - In the Cloudflare dashboard, go to **Workers → drill-coach → Settings → Variables** and set `COACH_MODE` to `off`.
 - `npx wrangler@4.168.0 secret delete OPENAI_API_KEY`. Without a key, live mode reports itself as disabled.
 - Revoke the key in the OpenAI dashboard.
+
+To stop transcription only, deploy without `--var TRANSCRIPTION:on`, or set `TRANSCRIPTION` to `off` in the dashboard. `COACH_MODE=off` also stops it.
 
 The Worker also has an automatic latch. If OpenAI ever reports more tokens than the Worker reserved, it records `usage-bound` with a timestamp and refuses all later live evaluations. Redeploying with `COACH_MODE:live` does **not** clear it. Only the recovery procedure below does.
 
@@ -166,7 +192,18 @@ Reservations held from earlier failures stay counted until the month ends. You c
 | Admin recovery | Maintenance mode only, 5 requests per minute, no CORS |
 | Processing tier | Standard (`service_tier: "default"`) |
 | Session lifetime | 30 minutes, kept only in page memory |
-| Answer size | 2,400 UTF-8 bytes |
+| Answer size | 2,400 UTF-8 bytes written, 6,000 UTF-8 bytes for a spoken transcript |
+| Maximum reservation per evaluation | about $0.013 written, about $0.016 spoken (worst case over all questions and follow-ups) |
+| Transcriptions per day | 20 (Europe/Zurich calendar dates), one at a time, 2 seconds apart, separate from the 10 evaluations |
+| Recording length | 5 minutes, stopped in the browser. The Worker refuses a reported duration over 5 minutes |
+| Recording size | 6 MiB, from the header and again while streaming. WebM, Ogg or MP4 audio, with a matching file signature |
+| Transcription reservation | 234 Neurons (5 minutes) before the call, settled from the reported duration |
+| Duplicate recordings | Same question and recording refused for 15 minutes, and request IDs are single-use |
+| Transcription prompt | Built only from the server-side question vocabulary. Clients cannot send prompt text |
 | Output size | 1,500 tokens, with no tools and no automatic retries |
 
 A reservation for a call that times out or fails without reported usage stays held. It counts against the monthly budget until the month ends, which keeps the accounting conservative.
+
+## Future public access
+
+Transcription and evaluation are limited to the owner account. Before opening them to other users, add per-user identities and quotas in the ledger (the `transcriptions` and `evaluations` tables are keyed by request, so a user column and per-user daily limits fit the existing reservations). Also add server-side duration checks before the call. A low-bitrate recording can run longer than 5 minutes within the 6 MiB size cap, so the reservation only stays safe while the count cap keeps the total under the free allocation.

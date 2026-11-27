@@ -49,6 +49,7 @@
 
   function render(focus = false) {
     window.DrillCoach?.clear();
+    window.DrillRecorder?.stop();
     clearInterval(interval);
     for (const button of root.querySelectorAll("[data-view]")) {
       button.setAttribute("aria-pressed", String(button.dataset.view === view));
@@ -75,6 +76,7 @@
   }
 
   function resetExercise(key) {
+    window.DrillRecorder?.discard(draftKey);
     drafts.delete(draftKey);
     draftKey = key;
     draft = {};
@@ -177,6 +179,7 @@
           </div>
           <button class="comm-disclosure" type="button" aria-controls="comm-hint" aria-expanded="${Boolean(draft.hint)}">Answer structure hint</button>
           <p id="comm-hint" class="comm-reveal" ${draft.hint ? "" : "hidden"}>${escape(structure)}</p>
+          <div class="comm-block" id="comm-recorder"></div>
           <label class="comm-block">Written answer (optional)
             <textarea name="answer" rows="4" placeholder="Answer aloud or write here.">${escape(draft.answer ?? "")}</textarea>
           </label>
@@ -215,7 +218,13 @@
       };
     }
     const form = mount.querySelector("form");
-    window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, { session: session?.id });
+    // Recording is public. The coach (owner-only) can transcribe the take for this exercise.
+    window.DrillRecorder?.mount(form.querySelector("#comm-recorder"), key, {
+      onChange: () => window.DrillCoach?.recordingChanged()
+    });
+    window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, {
+      session: session?.id, recording: () => window.DrillRecorder?.get(key) ?? null
+    });
     const timer = form.elements.duration;
     const start = mount.querySelector("#comm-start");
     const stop = mount.querySelector("#comm-stop");
@@ -256,7 +265,8 @@
 
     form.onsubmit = event => {
       event.preventDefault();
-      const attempt = model.assessment(current, fields(form));
+      const spoken = Boolean(window.DrillRecorder?.recording() || window.DrillRecorder?.get(key));
+      const attempt = model.assessment(current, fields(form), new Date(), spoken ? "spoken" : "written");
       if (!attempt) {
         announce("Choose a self-assessment rating for each skill.");
         return;
@@ -453,7 +463,9 @@
       <h2 tabindex="-1" data-heading>Progress</h2>
       <div class="comm-grid comm-stats">
         ${stat(stats.completed, "Exercises completed")}${stat(stats.attempts, "Attempts saved")}
-        ${stat(formatScore(stats.average), "Average self-assessment")}
+        ${stats.spoken ? stat(formatScore(stats.writtenAverage), "Average self-assessment · written") +
+          stat(formatScore(stats.spokenAverage), "Average self-assessment · spoken") +
+          stat(stats.spoken, "Spoken attempts") : stat(formatScore(stats.average), "Average self-assessment")}
         ${stat(`${stats.lessons} / ${lessons.length}`, "Lessons completed")}
         ${stat(`${stats.streak} days`, "Practice streak")}
         ${stat(stats.daily, stats.dailyToday ? "Daily sessions · completed today" : "Daily sessions completed")}

@@ -1,9 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { Ledger, MAX_CHALLENGES, MONTHLY_CAP } from "../backend/drill-coach/ledger.mjs";
+import { DAILY_TRANSCRIPTIONS, Ledger, MAX_CHALLENGES, MONTHLY_CAP } from "../backend/drill-coach/ledger.mjs";
 import { handle } from "../backend/drill-coach/service.mjs";
 import { DEFAULT_MODEL, buildEvaluation, feedbackFor, mockOpenAI } from "../backend/drill-coach/evaluation.mjs";
+import {
+  MAX_AUDIO_BYTES, RESERVE_NEURONS, TRANSCRIBE_MODEL, neuronsFor, speechMetrics
+} from "../backend/drill-coach/transcription.mjs";
+import { createRequire } from "node:module";
 import { verifyGoogle } from "../backend/drill-coach/identity.mjs";
 import progress from "../drill/communication/coach-progress.js";
 import catalog from "../backend/drill-coach/catalog.json" with { type: "json" };
@@ -40,7 +44,31 @@ function setup() {
     assert.equal(response.status, 200);
     return { ...(await response.json()), options };
   }
-  return { db, ledger, send, login, advance: ms => { now += ms; } };
+  // Posts raw audio to the transcription route, as the browser does.
+  function speak(bytes, { session, env = speechEnv, options = {}, type = "audio/webm;codecs=opus",
+    questionId = "fusion", requestId = crypto.randomUUID(), extra = "", headers = {} } = {}) {
+    return handle(new Request(`https://coach.example/v1/transcriptions?questionId=${questionId}&requestId=${requestId}${extra}`, {
+      method: "POST", headers: { Origin: origin, "Content-Type": type, ...(session ? { Authorization: "Bearer " + session } : {}), ...headers },
+      body: bytes
+    }), env, ledger, { now: () => now, ...options });
+  }
+  return { db, ledger, send, speak, login, advance: ms => { now += ms; } };
+}
+const speechEnv = { ...base, TRANSCRIPTION: "on" };
+const webm = (size = 2000, seed = 0) => {
+  const bytes = new Uint8Array(size).map((_, i) => (i * 7 + seed) & 255);
+  bytes.set([0x1a, 0x45, 0xdf, 0xa3]);
+  return bytes;
+};
+const mp4 = (size = 2000) => {
+  const bytes = new Uint8Array(size);
+  bytes.set([0, 0, 0, 0x20, ...new TextEncoder().encode("ftypisom")]);
+  return bytes;
+};
+// A Whisper-shaped response: words with timings, and the reported duration.
+function whisper(duration, words = ["Um,", "the", "IMU", "helps.", "You", "know,", "it", "works."], gap = 0) {
+  return { text: words.join(" "), transcription_info: { duration },
+    segments: [{ words: words.map((word, i) => ({ word: " " + word, start: i * 0.5 + (i >= 4 ? gap : 0), end: i * 0.5 + 0.4 + (i >= 4 ? gap : 0) })) }] };
 }
 const answer = (text = "I explain the idea with an example.") => ({
   questionId: "iou", answer: text, requestId: crypto.randomUUID()
@@ -259,13 +287,13 @@ test("question-level AI scores summarize latest, best, attempts and review dates
   const summary = progress.byQuestion([
     row("a", "iou", 2, "2026-11-20T10:00:00.000Z"),
     row("b", "iou", 4, "2026-11-21T10:00:00.000Z", { reviewAt: "2026-11-22T10:00:00.000Z" }),
-    row("c", "iou", 3, "2026-11-23T10:00:00.000Z"),
+    row("c", "iou", 3, "2026-11-23T10:00:00.000Z", { mode: "spoken" }),
     row("d", "iou-plain", 1.5, "2026-11-23T10:00:00.000Z"),
     row("e", "iou-plain", 5, "2026-11-24T10:00:00.000Z", { mock: true })
   ]);
   assert.deepEqual(summary, [
-    { questionId: "iou-plain", attempts: 1, best: 1.5, reviewAt: null, latest: 1.5, latestAt: "2026-11-23T10:00:00.000Z" },
-    { questionId: "iou", attempts: 3, best: 4, reviewAt: "2026-11-22T10:00:00.000Z", latest: 3, latestAt: "2026-11-23T10:00:00.000Z" }
+    { questionId: "iou-plain", attempts: 1, spoken: 0, best: 1.5, reviewAt: null, latest: 1.5, latestAt: "2026-11-23T10:00:00.000Z" },
+    { questionId: "iou", attempts: 3, spoken: 1, best: 4, reviewAt: "2026-11-22T10:00:00.000Z", latest: 3, latestAt: "2026-11-23T10:00:00.000Z" }
   ]);
   assert.deepEqual(progress.byQuestion([]), []);
 });
@@ -348,4 +376,186 @@ test("recovery never lowers the ledger, refuses in-flight evaluations, and chall
   for (let i = 0; i < MAX_CHALLENGES; i++) assert.equal(ledger.challenge("n" + i, time, time + 300_000), true);
   assert.equal(ledger.challenge("overflow", time, time + 300_000), false);
   assert.equal(ledger.challenge("after-expiry", time + 300_000, time + 600_000), true);
+});
+
+test("transcription is owner-only, separately switchable, and validates the recording before reserving", async () => {
+  const { db, speak, send, login } = setup();
+  const code = async response => [response.status, (await response.json()).error];
+  assert.deepEqual(await code(await speak(webm())), [401, "session"]);
+  const { session } = await login();
+  assert.equal((await (await send("/v1/config", "GET", { env: base })).json()).transcription, false);
+  assert.equal((await (await send("/v1/config", "GET", { env: speechEnv })).json()).transcription, true);
+  // Live mode needs the Workers AI binding as well as the switch.
+  const liveNoBinding = { ...speechEnv, COACH_MODE: "live", OPENAI_API_KEY: "mock-only" };
+  assert.equal((await (await send("/v1/config", "GET", { env: liveNoBinding })).json()).transcription, false);
+  assert.deepEqual(await code(await speak(webm(), { session, env: base })), [503, "transcription_disabled"]);
+  assert.deepEqual(await code(await speak(webm(), { session, env: { ...speechEnv, COACH_MODE: "off" } })), [503, "disabled"]);
+  assert.deepEqual(await code(await speak(webm(), { session, type: "video/webm" })), [415, "audio"]);
+  assert.deepEqual(await code(await speak(webm(), { session, type: "audio/wav" })), [415, "audio"]);
+  // The declared container must match the file signature.
+  assert.deepEqual(await code(await speak(mp4(), { session })), [400, "audio"]);
+  assert.deepEqual(await code(await speak(webm(20), { session })), [400, "audio"]);
+  assert.deepEqual(await code(await speak(webm(), { session, questionId: "__proto__" })), [400, "invalid"]);
+  assert.deepEqual(await code(await speak(webm(), { session, requestId: "nope" })), [400, "invalid"]);
+  assert.deepEqual(await code(await speak(webm(), { session, extra: "&prompt=forged" })), [400, "invalid"]);
+  // Size is enforced from the header and again while streaming.
+  assert.deepEqual(await code(await speak(webm(), { session, headers: { "Content-Length": String(MAX_AUDIO_BYTES + 1) } })), [413, "audio_size"]);
+  assert.deepEqual(await code(await speak(webm(MAX_AUDIO_BYTES + 1), { session })), [413, "audio_size"]);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM transcriptions").get().n, 0);
+  const ok = await speak(mp4(), { session, type: "audio/mp4" });
+  assert.equal(ok.status, 200);
+  const value = await ok.json();
+  assert.equal(value.mock, true);
+  assert.ok(value.text.includes("mock transcript"));
+  assert.equal(value.usage.transcriptionsToday, 1);
+});
+
+test("live transcription uses server vocabulary, settles by reported duration, and stores no audio or text", async () => {
+  const { db, ledger, speak, login, advance } = setup();
+  const calls = [];
+  const env = { ...speechEnv, COACH_MODE: "live", OPENAI_API_KEY: "mock-only", AI: {
+    async run(model, input) {
+      const audio = new Uint8Array(await new Response(input.audio.body).arrayBuffer());
+      calls.push({ model, input, audio });
+      return whisper(95.2, undefined, 1.6);
+    }
+  } };
+  const { session } = await login(env);
+  const recording = webm(5000, 3);
+  const response = await speak(recording, { session, env });
+  assert.equal(response.status, 200);
+  const value = await response.json();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, TRANSCRIBE_MODEL);
+  assert.deepEqual(calls[0].audio, recording);
+  assert.equal(calls[0].input.audio.contentType, "audio/webm;codecs=opus");
+  assert.equal(calls[0].input.language, "en");
+  assert.equal(calls[0].input.vad_filter, true);
+  assert.equal(calls[0].input.initial_prompt, "Technical interview answer. Vocabulary: " + catalog.fusion.terms.join(", ") + ".");
+  assert.ok(calls[0].input.initial_prompt.includes("IMU"));
+  assert.equal(value.text, "Um, the IMU helps. You know, it works.");
+  assert.deepEqual(value.metrics, { duration: 95.2, words: 8, speakingSeconds: 5.5, wordsPerMinute: 87,
+    pauses: 1, longestPause: 1.7, fillers: 2 });
+  const row = db.prepare("SELECT * FROM transcriptions").get();
+  assert.equal(row.state, "settled");
+  assert.equal(row.neurons, neuronsFor(95.2));
+  assert.equal(row.seconds, 95.2);
+  const stored = JSON.stringify(db.prepare("SELECT * FROM transcriptions").all());
+  assert.ok(!stored.includes("IMU") && !stored.includes(session));
+  // One at a time, with 2 seconds between requests.
+  assert.equal((await speak(webm(5000, 5), { session, env })).status, 429);
+  // Request IDs are single-use and the same recording is not transcribed twice.
+  advance(3000);
+  assert.equal((await speak(webm(5000, 4), { session, env, requestId: row.id })).status, 409);
+  assert.equal((await speak(recording, { session, env })).status, 409);
+  assert.equal(calls.length, 1);
+  advance(3000);
+  // Failures keep the full five-minute reservation; reported overlong audio is refused but counted.
+  const failing = { ...env, AI: { run: async () => { throw new Error("capacity"); } } };
+  assert.equal((await speak(webm(5000, 6), { session, env: failing })).status, 502);
+  assert.equal(db.prepare("SELECT neurons, state FROM transcriptions ORDER BY created DESC").get().neurons, RESERVE_NEURONS);
+  advance(3000);
+  const long = { ...env, AI: { run: async () => whisper(301) } };
+  assert.deepEqual([(await speak(webm(5000, 7), { session, env: long })).status], [413]);
+  advance(3000);
+  const silent = { ...env, AI: { run: async () => ({ text: " ", transcription_info: { duration: 4 }, segments: [] }) } };
+  assert.equal((await speak(webm(5000, 8), { session, env: silent })).status, 422);
+  advance(3000);
+  const malformed = { ...env, AI: { run: async () => ({ text: "x" }) } };
+  assert.equal((await speak(webm(5000, 9), { session, env: malformed })).status, 502);
+  const totals = ledger.totals(time);
+  assert.equal(totals.transcriptionsToday, 5);
+  assert.equal(totals.estimatedNeuronsToday, neuronsFor(95.2) + RESERVE_NEURONS + neuronsFor(301) + neuronsFor(4) + RESERVE_NEURONS);
+  assert.ok(RESERVE_NEURONS * DAILY_TRANSCRIPTIONS < 10_000, "the reserved maximum fits the free daily allocation");
+});
+
+test("transcriptions are limited to 20 per Zurich day and run one at a time", async () => {
+  const { ledger, speak, login, advance } = setup();
+  const { session } = await login(speechEnv);
+  let release;
+  const slow = { transcriber: () => new Promise(resolve => { release = () => resolve(whisper(10)); }) };
+  const first = speak(webm(3000, 1), { session, options: slow });
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal((await speak(webm(3000, 2), { session })).status, 429);
+  release();
+  assert.equal((await first).status, 200);
+  for (let i = 1; i < DAILY_TRANSCRIPTIONS; i++) {
+    advance(3000);
+    assert.equal((await speak(webm(3000, 10 + i), { session })).status, 200);
+  }
+  advance(3000);
+  const over = await speak(webm(3000, 99), { session });
+  assert.deepEqual([over.status, (await over.json()).error], [429, "transcription_daily"]);
+  assert.equal(ledger.totals(time).remainingTranscriptionsToday, 0);
+  // Written evaluations keep their own daily limit.
+  assert.equal(ledger.totals(time).remainingToday, 10);
+});
+
+test("speech metrics come from word timings, count common fillers, and skip pace for very short clips", () => {
+  assert.equal(speechMetrics({ text: "x" }), null);
+  const short = speechMetrics(whisper(3, ["Hi", "there."]));
+  assert.equal(short.wordsPerMinute, null);
+  assert.equal(short.pauses, 0);
+  const metrics = speechMetrics(whisper(20, ["Uh,", "I", "mean,", "um", "the", "like", "filter", "works", "well", "here."], 2));
+  assert.equal(metrics.fillers, 3);
+  assert.equal(metrics.pauses, 1);
+  assert.equal(metrics.words, 10);
+});
+
+test("spoken evaluations accept longer transcripts, use the spoken rubric note, and stay under $0.02", async () => {
+  const { send, login, advance } = setup();
+  const { session } = await login();
+  const spoken = text => ({ ...answer(text), mode: "spoken" });
+  assert.equal((await send("/v1/evaluations", "POST", { session, body: answer("a".repeat(2401)) })).status, 400);
+  const tooLong = await send("/v1/evaluations", "POST", { session, body: spoken("a".repeat(6001)) });
+  assert.deepEqual([tooLong.status, (await tooLong.json()).error], [400, "transcript"]);
+  assert.equal((await send("/v1/evaluations", "POST", { session, body: { ...answer(), mode: "audio" } })).status, 400);
+  let payload;
+  const options = { mock: evaluation => { payload = JSON.parse(evaluation.body); return mockOpenAI(evaluation); } };
+  const response = await send("/v1/evaluations", "POST", { session, body: spoken("a ".repeat(2999) + "a"), options });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).mode, "spoken");
+  assert.match(payload.instructions, /transcript of a spoken answer/);
+  assert.match(payload.instructions, /Do not assess pronunciation, accent, confidence, or intonation/);
+  assert.equal(JSON.parse(payload.input[0].content).answerFormat, "spoken transcript");
+  advance(3000);
+  const written = await send("/v1/evaluations", "POST", { session, body: answer("Written answer"), options });
+  assert.equal((await written.json()).mode, "written");
+  assert.doesNotMatch(payload.instructions, /transcript/);
+  // Worst case over every question, the longest follow-up, and a full 6,000-byte transcript.
+  for (const exercise of Object.values(catalog)) {
+    for (const prompt of [exercise.prompt, "x".repeat(450)]) {
+      for (const text of ["a".repeat(6000), "é".repeat(3000)]) {
+        const evaluation = buildEvaluation({ model: DEFAULT_MODEL, exercise, prompt, answer: text, mode: "spoken" });
+        assert.ok(evaluation && evaluation.reserveCost <= 20_000, "spoken reservation stays within $0.02");
+      }
+    }
+  }
+});
+
+test("spoken scores are marked, written rows keep the V1.1 shape, and self-assessments record the mode", () => {
+  const values = new Map();
+  const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const row = { id: "w", questionId: "iou", category: "concept", topic: "cv", at: new Date(time).toISOString(),
+    model: DEFAULT_MODEL, rubric: 1, overall: 3, scores: Object.fromEntries(Object.keys(progress.skills).map(skill => [skill, 3])) };
+  progress.save(storage, row);
+  progress.save(storage, { ...row, id: "s", mode: "spoken" });
+  const [written, spokenRow] = progress.load(storage);
+  assert.equal(Object.hasOwn(written, "mode"), false);
+  assert.equal(spokenRow.mode, "spoken");
+  assert.equal(progress.normalize({ ...row, mode: "written" }).mode, undefined);
+  assert.throws(() => progress.normalize({ ...row, mode: "video" }));
+
+  const model = createRequire(import.meta.url)("../drill/communication/model.js");
+  const question = { id: "iou", category: "concept", reasoning: false };
+  const ratings = Object.fromEntries(Object.keys(model.skills).map(skill => [skill, "4"]));
+  const state = model.empty();
+  model.recordAttempt(state, model.assessment(question, ratings));
+  model.recordAttempt(state, model.assessment(question, { ...ratings, accuracy: "2" }, new Date(), "spoken"));
+  assert.equal(Object.hasOwn(state.attempts[0], "mode"), false);
+  assert.equal(state.attempts[1].mode, "spoken");
+  const stats = model.progress(state);
+  assert.equal(stats.spoken, 1);
+  assert.equal(stats.writtenAverage, 4);
+  assert.ok(stats.spokenAverage < 4);
 });

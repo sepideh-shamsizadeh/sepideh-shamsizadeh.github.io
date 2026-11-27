@@ -132,3 +132,29 @@ test("invalid AI Coach rows or versions cannot be imported", () => {
   assert.throws(() => parse({ version: 1, attempts: [coachRow("a", 3, { model: "other-model" })] }));
   assert.equal(parse({ version: 1, attempts: [] }).aiCoach.attempts.length, 0);
 });
+
+test("spoken self-assessments and AI scores keep their mode through transfer, and written rows are unchanged", () => {
+  const spokenAttempt = { ...attempt, mode: "spoken" };
+  const spokenRow = coachRow("sp", 2.5, { mode: "spoken", transcript: "private transcript" });
+  const source = memory({
+    [model.key]: JSON.stringify({ ...coach, attempts: [attempt, spokenAttempt] }),
+    [coachKey]: JSON.stringify({ version: 1, attempts: [coachRow("wr", 3), spokenRow] })
+  });
+  const snapshot = transfer.snapshot(source);
+  assert.equal(JSON.stringify(snapshot).includes("private"), false);
+  assert.deepEqual(snapshot.communication.attempts.map(row => row.mode), [undefined, "spoken"]);
+  assert.deepEqual(snapshot.aiCoach.attempts.map(row => row.mode), [undefined, "spoken"]);
+  const destination = memory();
+  const file = transfer.parse(JSON.stringify(snapshot));
+  transfer.apply(destination, transfer.plan(destination, file));
+  assert.deepEqual(model.load(destination).attempts, [attempt, spokenAttempt]);
+  assert.deepEqual(transfer.plan(destination, file), []);
+  // A spoken and a written attempt with the same ratings are different history entries.
+  const merged = memory({ [model.key]: JSON.stringify({ ...coach, attempts: [attempt] }) });
+  transfer.apply(merged, transfer.plan(merged, file));
+  assert.equal(model.load(merged).attempts.length, 2);
+  assert.throws(() => transfer.parse(JSON.stringify({ format: "drill-progress", version: 1,
+    communication: { ...coach, attempts: [{ ...attempt, mode: "video" }] } })));
+  assert.throws(() => transfer.parse(JSON.stringify({ format: "drill-progress", version: 1,
+    aiCoach: { version: 1, attempts: [coachRow("x", 3, { mode: "video" })] } })));
+});

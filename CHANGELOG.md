@@ -1,5 +1,15 @@
 # Changelog
 
+## DRILL 1.2.0 — Unreleased
+
+- Added public spoken practice. A recorder on every exercise and session step offers start, pause, resume, stop, an elapsed timer with a 5-minute automatic stop, playback, record again and delete. It needs no sign-in, keeps recordings in page memory only, and releases the microphone after each take. Browsers without recording support keep timers and written practice.
+- Marked self-assessments saved with a recording as `mode: "spoken"`. Progress shows written and spoken averages and the number of spoken attempts. Older attempts are unchanged.
+- Added owner-only transcription through Cloudflare Workers AI (`whisper-large-v3-turbo`) on the free daily allocation, with no paid fallback. Each request reserves 5 minutes of audio before the call and settles from the duration Whisper reports. It is limited to 20 per day, one at a time, and checks size, type and file signature. Duplicate recordings are refused. Recognition is primed with a server-side vocabulary for each question, and a separate `TRANSCRIPTION` switch is off by default.
+- Added an editable transcript with speech metrics from the original recognition: duration, speaking pace, pauses longer than one second, and an approximate filler count. Pronunciation, accent, confidence and intonation are not assessed.
+- Added spoken evaluation on the existing eight-skill rubric, with instructions to judge the transcript as speech. Transcripts can be up to 6,000 bytes, and the worst-case reservation is about $0.016. The $3 monthly budget and 10 evaluations per day are unchanged and shared with written answers.
+- Saved spoken AI scores with `mode: "spoken"`, and reported written and spoken AI scores separately in Progress. Written rows, rubric 1 records and existing exports are unchanged. Export and import carry the mode.
+- Audio, transcripts and detailed feedback are never stored in the browser, the Worker database or logs.
+
 ## DRILL 1.1.0 — Unreleased
 
 - Added an optional, owner-only AI Communication Coach to Practice and to daily and quick sessions. Evaluation runs only on an explicit click, through a Cloudflare Worker backed by a free SQLite Durable Object.

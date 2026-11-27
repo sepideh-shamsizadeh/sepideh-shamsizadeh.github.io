@@ -4,146 +4,308 @@
     "prompt": "What is IoU?",
     "example": "IoU measures how closely two regions overlap. We need it because a detected box rarely matches the label exactly. Divide their intersection area by their union area. If they overlap by 30 pixels out of a combined 50, IoU is 0.6.",
     "reasoning": false,
-    "structure": "What → Why → How → Example"
+    "structure": "What → Why → How → Example",
+    "terms": [
+      "IoU",
+      "intersection over union",
+      "bounding box",
+      "ground truth",
+      "detection threshold"
+    ]
   },
   "iou-plain": {
     "category": "plain",
     "prompt": "Explain bounding-box overlap to a product manager deciding whether a detection is good enough.",
     "example": "We need a consistent way to judge whether a detection points to the right spot. Think of placing two transparent stickers over the same object. The more their shared area fills the total area they cover, the closer the match. That gives us a repeatable way to compare model versions.",
     "reasoning": false,
-    "structure": "Problem → Analogy → Benefit"
+    "structure": "Problem → Analogy → Benefit",
+    "terms": [
+      "IoU",
+      "bounding box",
+      "detection",
+      "model versions"
+    ]
   },
   "overfit": {
     "category": "concept",
     "prompt": "What is overfitting and how do you avoid it?",
     "example": "An overfit model learns details specific to its training examples. That matters because high training scores can hide poor performance on new data. Compare training and validation scores, then try a simpler model or stronger regularization. For example, split camera data by site to see if the model learned the background.",
     "reasoning": false,
-    "structure": "What → Why → How → Example"
+    "structure": "What → Why → How → Example",
+    "terms": [
+      "overfitting",
+      "regularization",
+      "validation set",
+      "cross-validation",
+      "dropout"
+    ]
   },
   "dropout": {
     "category": "concept",
     "prompt": "How does dropout work?",
     "example": "Dropout randomly zeros activations during training. It can reduce overfitting by limiting reliance on any one activation. Training libraries typically rescale the kept activations so evaluation can use the full network with dropout disabled. For example, compare validation loss with and without dropout in a classifier head.",
     "reasoning": false,
-    "structure": "What → Why → How → Example"
+    "structure": "What → Why → How → Example",
+    "terms": [
+      "dropout",
+      "activations",
+      "regularization",
+      "inference",
+      "validation loss",
+      "classifier head"
+    ]
   },
   "path": {
     "category": "comparison",
     "prompt": "Dijkstra vs A*?",
     "example": "Dijkstra prioritizes cost so far. A* adds an estimate of cost to the goal. Dijkstra needs no heuristic and is useful for distances to many destinations. A* can explore fewer cells for one goal, but the benefit depends on the heuristic. I would use A* with Manhattan distance on a four-connected unit-cost grid and Dijkstra for a full distance map.",
     "reasoning": true,
-    "structure": "Differences → Advantages → Limitations → Use cases"
+    "structure": "Differences → Advantages → Limitations → Use cases",
+    "terms": [
+      "Dijkstra",
+      "A*",
+      "heuristic",
+      "Manhattan distance",
+      "priority queue",
+      "four-connected grid"
+    ]
   },
   "rl": {
     "category": "comparison",
     "prompt": "Compare Q-learning and SARSA for a grid robot that explores near costly cells.",
     "example": "Q-learning updates toward the best estimated next action. SARSA updates toward the next action actually taken under the current policy. Q-learning can learn a greedy policy while exploring. SARSA accounts for the consequences of its exploration policy, but can prefer longer routes if exploration stays high. I would compare training-time costs and greedy evaluation returns before choosing.",
     "reasoning": true,
-    "structure": "Differences → Advantages → Limitations → Use cases"
+    "structure": "Differences → Advantages → Limitations → Use cases",
+    "terms": [
+      "Q-learning",
+      "SARSA",
+      "on-policy",
+      "off-policy",
+      "epsilon-greedy",
+      "reward"
+    ]
   },
   "rl-evidence": {
     "category": "research",
     "prompt": "Summarize a simulation study comparing two reward functions for a navigation policy.",
     "example": "We asked whether a collision penalty could reduce collisions without lowering the completion rate. We trained both variants with five seeds and evaluated on the same held-out layouts. In this example the collision rate fell from 8% to 3%, while completion stayed near 90%. The study only covered simulated layouts, so I would test sensor noise and new environments before generalizing.",
     "reasoning": true,
-    "structure": "Research question → Methodology → Results → Limitations"
+    "structure": "Research question → Methodology → Results → Limitations",
+    "terms": [
+      "reward function",
+      "navigation policy",
+      "collision penalty",
+      "random seeds",
+      "held-out layouts"
+    ]
   },
   "qos": {
     "category": "decision",
     "prompt": "Choose a ROS 2 QoS policy for live camera frames on a congested link.",
     "example": "The controller needs recent frames, and occasional loss is acceptable. I would use best-effort delivery and a shallow history. Late frames lose value, and retries can add delay under congestion. Some frames will be lost, so I would monitor frame age and gaps. I would choose different settings for messages that must arrive.",
     "reasoning": true,
-    "structure": "Requirements → Decision → Reason → Trade-offs"
+    "structure": "Requirements → Decision → Reason → Trade-offs",
+    "terms": [
+      "ROS 2",
+      "QoS",
+      "best effort",
+      "reliable",
+      "history depth",
+      "DDS"
+    ]
   },
   "qos-debug": {
     "category": "debug",
     "prompt": "A ROS 2 camera topic is visible, but a new subscriber receives nothing. Explain how you would investigate.",
     "example": "The topic appears in discovery, but no frames reach the subscriber. I suspect incompatible reliability settings. I would inspect both endpoints with ros2 topic info --verbose and test with a subscriber configured to match the publisher. If frames resume, I would document the intended QoS and add an integration check.",
     "reasoning": true,
-    "structure": "Observation → Hypothesis → Test → Resolution"
+    "structure": "Observation → Hypothesis → Test → Resolution",
+    "terms": [
+      "ROS 2",
+      "QoS",
+      "ros2 topic info",
+      "subscriber",
+      "publisher",
+      "reliability",
+      "DDS"
+    ]
   },
   "pipeline": {
     "category": "design",
     "prompt": "Architect a ROS 2 perception-to-action pipeline.",
     "example": "I would establish the sensor rates, compute budget and maximum useful age of a perception result. Drivers timestamp data at acquisition. Synchronization and calibration feed perception and fusion, then the planner and controller consume the result. I would measure end-to-end age and define behavior for stale results. Approximate synchronization saves waiting time at the cost of alignment error.",
     "reasoning": true,
-    "structure": "Requirements → Architecture → Trade-offs"
+    "structure": "Requirements → Architecture → Trade-offs",
+    "terms": [
+      "ROS 2",
+      "perception",
+      "sensor fusion",
+      "calibration",
+      "timestamps",
+      "approximate time synchronizer"
+    ]
   },
   "fusion": {
     "category": "project",
     "prompt": "Present a sensor-fusion project that improved localization during wheel slip. Use real or clearly hypothetical results.",
     "example": "Wheel slip caused position estimates to jump. I built a replay benchmark with reference poses and fused wheel odometry with an IMU. In this example median error on slip segments fell from 0.8 m to 0.5 m across 20 runs. That helped the planner stay closer to its route, though low-speed drift still needed work.",
     "reasoning": true,
-    "structure": "Problem → Approach → Results → Impact"
+    "structure": "Problem → Approach → Results → Impact",
+    "terms": [
+      "Kalman filter",
+      "IMU",
+      "wheel odometry",
+      "wheel slip",
+      "localization",
+      "covariance"
+    ]
   },
   "fusion-probe": {
     "category": "uncertainty",
     "prompt": "Your interviewer asks whether your fusion improvement came from the IMU or the filter tuning. How would you find out?",
     "example": "The fused system improved on the slip benchmark. We changed both the sensor inputs and the tuning, so I cannot attribute the gain yet. I assume the replay can reproduce the comparison. I would run a sensor ablation and a tuning-only baseline on the same runs, then compare errors across slip and normal segments.",
     "reasoning": true,
-    "structure": "Known facts → Assumptions → Investigation"
+    "structure": "Known facts → Assumptions → Investigation",
+    "terms": [
+      "IMU",
+      "Kalman filter",
+      "ablation",
+      "process noise",
+      "measurement noise",
+      "replay benchmark"
+    ]
   },
   "drift": {
     "category": "uncertainty",
     "prompt": "A model alert fires, but fresh labels are delayed. Explain what you know and how you would investigate.",
     "example": "The prediction distribution shifted after deployment. We do not yet know whether accuracy fell because new labels are delayed. I would check deployment changes and compare feature distributions on stable cohorts, then sample examples for early labeling. Once labels arrive I would compare actual error rates against the previous model.",
     "reasoning": true,
-    "structure": "Known facts → Assumptions → Investigation"
+    "structure": "Known facts → Assumptions → Investigation",
+    "terms": [
+      "data drift",
+      "concept drift",
+      "feature distribution",
+      "cohorts",
+      "labels",
+      "rollback"
+    ]
   },
   "stream": {
     "category": "design",
     "prompt": "Design a streaming dashboard that receives late events.",
     "example": "The dashboard needs five-minute aggregates within two minutes of normal event arrival. I would aggregate by event time, measure lateness, set an initial watermark using that distribution and persist checkpoints. I would keep raw events for reconciliation. A longer delay keeps more late events in the live results but increases state and delays final counts.",
     "reasoning": true,
-    "structure": "Requirements → Architecture → Trade-offs"
+    "structure": "Requirements → Architecture → Trade-offs",
+    "terms": [
+      "watermark",
+      "event time",
+      "late events",
+      "windowed aggregates",
+      "checkpoints",
+      "Kafka",
+      "Flink"
+    ]
   },
   "review": {
     "category": "behavior",
     "prompt": "Describe a time you disagreed with a teammate about a concurrency fix. Use a real example if you have one.",
     "example": "During review, a teammate proposed a global lock for a shared cache. I owned the latency target and wanted evidence on the cost. I reproduced the race and compared a global lock with a per-shard lock under load. We chose the simpler lock because it passed the latency budget and documented when to revisit the decision.",
     "reasoning": true,
-    "structure": "Situation → Task → Action → Result (STAR)"
+    "structure": "Situation → Task → Action → Result (STAR)",
+    "terms": [
+      "C++",
+      "mutex",
+      "race condition",
+      "per-shard lock",
+      "global lock",
+      "thread-safe",
+      "latency budget"
+    ]
   },
   "batch": {
     "category": "decision",
     "prompt": "Choose a training update strategy for a classifier whose labels arrive weekly.",
     "example": "Labels arrive weekly and each release needs a review. I would retrain in batches and evaluate each candidate on a time-based holdout before rollout. That gives us reproducible versions and a rollback point. Adaptation is slower, so I would monitor cohorts for changes between runs.",
     "reasoning": true,
-    "structure": "Requirements → Decision → Reason → Trade-offs"
+    "structure": "Requirements → Decision → Reason → Trade-offs",
+    "terms": [
+      "batch training",
+      "online learning",
+      "time-based holdout",
+      "retraining",
+      "rollback"
+    ]
   },
   "tracking": {
     "category": "project",
     "prompt": "Present a tracking project where objects frequently occluded one another. Use real or clearly hypothetical results.",
     "example": "Occlusions caused track IDs to switch at crossings. I compared our motion-only baseline with appearance-assisted matching using the same labeled video clips. In this example, ID switches fell from 24 to 11 across 30 clips. That made occupancy estimates steadier, with extra inference work for the appearance features.",
     "reasoning": true,
-    "structure": "Problem → Approach → Results → Impact"
+    "structure": "Problem → Approach → Results → Impact",
+    "terms": [
+      "SORT",
+      "DeepSORT",
+      "ID switches",
+      "occlusion",
+      "Kalman filter",
+      "Hungarian algorithm",
+      "re-identification"
+    ]
   },
   "monitor": {
     "category": "project",
     "prompt": "Describe an MLOps project that reduced the time to diagnose model incidents.",
     "example": "Model alerts used to start a manual investigation. I added dashboards that linked deployment versions, input changes and error rates on labeled cohorts. In this example, median diagnosis time fell from 40 to 15 minutes over ten staged incidents. On-call engineers could identify which release or cohort to inspect first.",
     "reasoning": true,
-    "structure": "Problem → Approach → Results → Impact"
+    "structure": "Problem → Approach → Results → Impact",
+    "terms": [
+      "MLOps",
+      "dashboards",
+      "model incidents",
+      "deployment versions",
+      "on-call",
+      "cohorts"
+    ]
   },
   "tracking-probe": {
     "category": "research",
     "prompt": "Your interviewer asks whether the tracker improvement generalizes to different cameras. How would you test it?",
     "example": "I would ask whether appearance features reduce ID switches on cameras we did not use for tuning. I would hold out entire camera views and compare both versions using the same detections. I would report ID switches and latency per camera, then check whether changes in lighting or viewing angle explain any gaps.",
     "reasoning": true,
-    "structure": "Research question → Methodology → Results → Limitations"
+    "structure": "Research question → Methodology → Results → Limitations",
+    "terms": [
+      "DeepSORT",
+      "appearance features",
+      "ID switches",
+      "held-out cameras",
+      "latency"
+    ]
   },
   "monitor-probe": {
     "category": "uncertainty",
     "prompt": "Your interviewer asks whether faster diagnosis came from the dashboards or from easier incidents. How would you tell?",
     "example": "The staged incidents were diagnosed faster after the dashboard change. I assume we can replay incidents at comparable difficulty, but the original comparison did not isolate that. I would have two groups diagnose matched incidents with and without the dashboards, counterbalance which setup they use first, and compare time and diagnosis accuracy.",
     "reasoning": true,
-    "structure": "Known facts → Assumptions → Investigation"
+    "structure": "Known facts → Assumptions → Investigation",
+    "terms": [
+      "dashboards",
+      "counterbalance",
+      "matched incidents",
+      "diagnosis time"
+    ]
   },
   "slam": {
     "category": "plain",
     "prompt": "Explain SLAM to an operations colleague who wants to know why a robot revisits an aisle.",
     "example": "The robot needs a map and a way to know where it is on that map. Imagine sketching a building while walking through it. Returning to a familiar doorway lets you correct parts of the sketch that drifted. Revisiting an aisle can help the robot correct its position so its routes stay consistent.",
     "reasoning": false,
-    "structure": "Problem → Analogy → Benefit"
+    "structure": "Problem → Analogy → Benefit",
+    "terms": [
+      "SLAM",
+      "loop closure",
+      "localization",
+      "odometry drift",
+      "pose graph"
+    ]
   }
 }

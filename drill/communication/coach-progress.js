@@ -10,7 +10,7 @@
     new Date(value).toISOString() === value;
 
   function metadata(value) {
-    if (!value || !id(value.id) || !id(value.questionId) || !id(value.topic) || !id(value.category) ||
+    if (!value || ![undefined, "written", "spoken"].includes(value.mode) || !id(value.id) || !id(value.questionId) || !id(value.topic) || !id(value.category) ||
         !date(value.at) || typeof value.model !== "string" || !/^gpt-[a-z0-9.-]{1,90}$/.test(value.model) ||
         value.rubric !== 1 || !value.scores || !Object.hasOwn(value, "overall") ||
         !Number.isFinite(value.overall) || value.overall < 1 || value.overall > 5) {
@@ -28,7 +28,9 @@
       at: value.at, model: value.model, rubric: 1, overall: value.overall, scores: Object.fromEntries(
         Object.keys(skills).map(skill => [skill, scores[skill] ?? null])
       ),
-      reviewAt: date(value.reviewAt) ? value.reviewAt : null, mock: value.mock === true
+      reviewAt: date(value.reviewAt) ? value.reviewAt : null, mock: value.mock === true,
+      // Spoken scores are marked; written rows keep the V1.1 shape so older exports stay identical.
+      ...(value.mode === "spoken" ? { mode: "spoken" } : {})
     };
   }
 
@@ -56,8 +58,9 @@
     for (const row of rows) {
       if (row.mock) continue;
       const entry = questions.get(row.questionId) ??
-        { questionId: row.questionId, attempts: 0, latest: null, best: null, reviewAt: null };
+        { questionId: row.questionId, attempts: 0, spoken: 0, latest: null, best: null, reviewAt: null };
       entry.attempts += 1;
+      if (row.mode === "spoken") entry.spoken += 1;
       if (!entry.latest || row.at >= entry.latest.at) entry.latest = row;
       if (entry.best === null || row.overall > entry.best) entry.best = row.overall;
       if (row.reviewAt && (!entry.reviewAt || row.reviewAt > entry.reviewAt)) entry.reviewAt = row.reviewAt;

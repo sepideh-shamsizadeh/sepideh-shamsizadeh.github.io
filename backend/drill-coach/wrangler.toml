@@ -10,6 +10,13 @@ enabled = false
 ALLOWED_ORIGIN = "https://sepideh.io"
 COACH_MODE = "off"
 OPENAI_MODEL = "gpt-5.4-mini-2026-03-17"
+# Spoken-answer transcription (Workers AI, Free allocation only). "off" until enabled deliberately.
+TRANSCRIPTION = "off"
+
+# Workers AI binding for whisper-large-v3-turbo. On the Workers Free plan, requests beyond the daily
+# Neuron allocation fail instead of being billed. Never upgrade the plan for this feature.
+[ai]
+binding = "AI"
 
 [[durable_objects.bindings]]
 name = "COACH"

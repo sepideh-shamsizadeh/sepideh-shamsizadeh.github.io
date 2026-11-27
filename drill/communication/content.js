@@ -123,6 +123,32 @@
 
   const followUps = { fusion: "fusion-probe", tracking: "tracking-probe", monitor: "monitor-probe" };
 
+  // Technical vocabulary that primes speech recognition for each exercise. The backend catalog copies it,
+  // so transcription prompts come only from the server.
+  const vocabulary = {
+    iou: ["IoU", "intersection over union", "bounding box", "ground truth", "detection threshold"],
+    "iou-plain": ["IoU", "bounding box", "detection", "model versions"],
+    overfit: ["overfitting", "regularization", "validation set", "cross-validation", "dropout"],
+    dropout: ["dropout", "activations", "regularization", "inference", "validation loss", "classifier head"],
+    path: ["Dijkstra", "A*", "heuristic", "Manhattan distance", "priority queue", "four-connected grid"],
+    rl: ["Q-learning", "SARSA", "on-policy", "off-policy", "epsilon-greedy", "reward"],
+    "rl-evidence": ["reward function", "navigation policy", "collision penalty", "random seeds", "held-out layouts"],
+    qos: ["ROS 2", "QoS", "best effort", "reliable", "history depth", "DDS"],
+    "qos-debug": ["ROS 2", "QoS", "ros2 topic info", "subscriber", "publisher", "reliability", "DDS"],
+    pipeline: ["ROS 2", "perception", "sensor fusion", "calibration", "timestamps", "approximate time synchronizer"],
+    fusion: ["Kalman filter", "IMU", "wheel odometry", "wheel slip", "localization", "covariance"],
+    "fusion-probe": ["IMU", "Kalman filter", "ablation", "process noise", "measurement noise", "replay benchmark"],
+    drift: ["data drift", "concept drift", "feature distribution", "cohorts", "labels", "rollback"],
+    stream: ["watermark", "event time", "late events", "windowed aggregates", "checkpoints", "Kafka", "Flink"],
+    review: ["C++", "mutex", "race condition", "per-shard lock", "global lock", "thread-safe", "latency budget"],
+    batch: ["batch training", "online learning", "time-based holdout", "retraining", "rollback"],
+    tracking: ["SORT", "DeepSORT", "ID switches", "occlusion", "Kalman filter", "Hungarian algorithm", "re-identification"],
+    monitor: ["MLOps", "dashboards", "model incidents", "deployment versions", "on-call", "cohorts"],
+    "tracking-probe": ["DeepSORT", "appearance features", "ID switches", "held-out cameras", "latency"],
+    "monitor-probe": ["dashboards", "counterbalance", "matched incidents", "diagnosis time"],
+    slam: ["SLAM", "loop closure", "localization", "odometry drift", "pose graph"]
+  };
+
   function questionBank(cards, topics) {
     const sources = new Map(cards.map(card => [card.q, card]));
     return exercises.map(([id, topic, category, sourceTitle, prompt, example]) => {
@@ -135,7 +161,7 @@
     });
   }
 
-  const content = { categories, lessons, questionBank };
+  const content = { categories, lessons, questionBank, vocabulary };
   if (typeof document === "undefined" && typeof module === "object") module.exports = content;
   else root.DrillCommunicationContent = content;
 })(globalThis);

@@ -4,8 +4,11 @@ export const DEFAULT_MODEL = "gpt-5.4-mini-2026-03-17";
 // billed lower, so charging all input at the full rate keeps estimates conservative.
 const prices = { [DEFAULT_MODEL]: { input: 0.75, output: 4.5 } };
 const OUTPUT_CAP = 1500;
-const INPUT_CAP = 12_000;
+// Written answers keep the V1.1 bounds. Spoken transcripts are longer, so their input bound is larger:
+// 16,000 × $0.75 + 1,500 × $4.50 per million tokens caps a spoken reservation at $0.01875.
+const INPUT_CAP = { written: 12_000, spoken: 16_000 };
 export const MAX_ANSWER_BYTES = 2400;
+export const MAX_TRANSCRIPT_BYTES = 6000;
 const utf8 = new TextEncoder();
 
 export const dimensions = [
@@ -38,6 +41,10 @@ const instructions = [
   "Do not invent faults, experience, metrics, or achievements. Use simple spoken professional English. Avoid praise, filler, and jargon.",
   "Keep each feedback list to at most three short entries. Use empty arrays where appropriate. Give at most three English corrections. Keep the improved answer to about 100 words and provide one short follow-up."
 ].join(" ");
+// Spoken answers arrive as an automatic transcript the candidate may have corrected.
+const spokenInstructions = " The answer is a transcript of a spoken answer. Judge it as speech: ignore punctuation, " +
+  "capitalization, and likely recognition errors, and do not penalize natural spoken phrasing. Do not assess " +
+  "pronunciation, accent, confidence, or intonation. Make corrections and the improved answer suitable to say aloud.";
 
 function exact(value, keys) {
   return value && typeof value === "object" && !Array.isArray(value) &&
@@ -65,14 +72,15 @@ export function validateFeedback(value, inapplicable) {
   return { ...value, overall: Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length * 10) / 10 };
 }
 
-export function buildEvaluation({ model, exercise, prompt, answer }) {
-  if (!Object.hasOwn(prices, model)) return null;
+export function buildEvaluation({ model, exercise, prompt, answer, mode = "written" }) {
+  if (!Object.hasOwn(prices, model) || !Object.hasOwn(INPUT_CAP, mode)) return null;
   const inapplicable = exercise.reasoning ? [] : ["reasoning"];
   const payload = {
     model, store: false, service_tier: "default", truncation: "disabled", max_output_tokens: OUTPUT_CAP,
-    reasoning: { effort: "none" }, instructions,
+    reasoning: { effort: "none" }, instructions: mode === "spoken" ? instructions + spokenInstructions : instructions,
     input: [{ role: "user", content: JSON.stringify({
-      question: prompt, framework: exercise.structure, exampleReference: exercise.example, inapplicable, answer
+      question: prompt, framework: exercise.structure, exampleReference: exercise.example, inapplicable,
+      ...(mode === "spoken" ? { answerFormat: "spoken transcript" } : {}), answer
     }) }],
     text: { format: { type: "json_schema", name: "drill_feedback_v1", strict: true, schema } }
   };
@@ -80,10 +88,10 @@ export function buildEvaluation({ model, exercise, prompt, answer }) {
   // Whole UTF-8 request bytes plus framing allowance conservatively bound byte-level tokens.
   // Only the priced, tested text snapshot is allowed. No tools, files, or automatic retries.
   const inputBound = utf8.encode(body).length + 1024;
-  if (inputBound > INPUT_CAP) return null;
+  if (inputBound > INPUT_CAP[mode]) return null;
   const price = prices[model];
   const reserveCost = Math.ceil(inputBound * price.input + OUTPUT_CAP * price.output);
-  return { body, model, inapplicable, price, inputBound, reserveCost };
+  return { body, model, mode, inapplicable, price, inputBound, reserveCost };
 }
 
 export function usageFor(envelope, evaluation) {
