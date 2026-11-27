@@ -7,6 +7,17 @@
   {% assign seo_url = site.url | append: site.baseurl %}
 {% endif %}
 {% assign seo_url = seo_url | default: site.github.url %}
+{% if page.url == '/' and site.url == 'https://sepideh-shamsizadeh.github.io' and site.migration_target %}
+  {% assign seo_url = site.migration_target %}
+  {% assign seo_base = site.migration_target %}
+  <meta http-equiv="refresh" content="0; url={{ site.migration_target | escape }}/">
+  <script>
+    (function () {
+      var target = {{ site.migration_target | append: '/' | jsonify }};
+      window.location.replace(target + window.location.search + window.location.hash);
+    })();
+  </script>
+{% endif %}
 
 {% if page.title %}
   {% assign seo_title = page.title | append: " " | append: site.title_separator | append: " " | append: site.title %}
