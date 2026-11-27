@@ -60,3 +60,9 @@ To implement a new component:
 3. Preview it in a draft. Check keyboard controls, both themes, and a narrow viewport before adding it to an article.
 
 Published articles refer to the component by name. Changes to its markup or behavior need only be made in the shared component.
+
+## Link an article to a Playground experiment
+
+After the Playground domain is approved and active, use `lab_experiment: kalman-filter` in an article’s front matter. The value must exactly match a published Playground slug. The article link only renders when the site config sets `playground_url: https://playground.sepideh.io`. Add the article’s verified production URL to the experiment’s `links.article` field in the separate Playground repository.
+
+The `/blog/` alias points to the existing `/year-archive/` blog. Article paths and Markdown authoring remain the same.
