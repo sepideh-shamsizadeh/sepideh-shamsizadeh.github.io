@@ -12,3 +12,5 @@ node_modules/
 /_drafts/*
 !/_drafts/example-draft.md
 /images/blog/draft-assets/
+
+.vercel/

@@ -1,0 +1,48 @@
+name: Build and preview Jekyll on Vercel
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Install the locked Ruby dependencies
+        run: bundle install --jobs 4 --retry 3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/drill-communication.test.cjs tests/drill-transfer.test.cjs
+      - name: Build preview
+        run: bash scripts/build-vercel.sh preview
+      - name: Check generated routes and metadata
+        run: node tests/vercel-output.cjs preview
+      - name: Deploy trusted preview
+        if: vars.VERCEL_PREVIEW_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@48.10.0 deploy --prebuilt --yes --token "$VERCEL_TOKEN"
+      - name: Build and check production
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        run: |
+          bash scripts/build-vercel.sh production
+          node tests/vercel-output.cjs production
+      - name: Deploy approved production target
+        if: vars.VERCEL_PRODUCTION_ENABLED == 'true' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@48.10.0 deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN"

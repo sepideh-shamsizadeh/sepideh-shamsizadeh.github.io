@@ -119,7 +119,9 @@
     if (session && (state.active?.id !== session.id || state.active.index !== session.index)) {
       throw new Error("Session changed");
     }
-    state.attempts.push(session ? { ...attempt, sessionId: session.id } : attempt);
+    const { questionId, category, day, ratings } = attempt;
+    const metadata = { questionId, category, day, ratings };
+    state.attempts.push(session ? { ...metadata, sessionId: session.id } : metadata);
     if (!session) return;
     const active = state.active;
     if (active.index + 1 < active.steps.length) {

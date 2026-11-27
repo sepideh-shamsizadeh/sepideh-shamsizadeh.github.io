@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Prepare the Jekyll website for Vercel Hobby while keeping the GitHub Pages deployment available.
+- Add local export and import for DRILL ratings, coding progress, lesson and session history, and preferences.
+- Save only metadata for new communication attempts. Keep new written answers and notes in memory.
+
 ## DRILL 1.0.1
 
 - Made question-bank initialization deterministic and versioned the DRILL asset URLs. The module shows a loading or recovery message while questions are unavailable.

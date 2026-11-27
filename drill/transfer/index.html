@@ -1,0 +1,40 @@
+---
+layout: default
+title: Transfer DRILL progress
+permalink: /drill/transfer/
+sitemap: false
+---
+
+<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}?v=1.0.1">
+<main id="main" class="wrap drill">
+  <section class="band">
+    <header class="ph">
+      <h1 class="ph__title">Transfer DRILL progress</h1>
+      <p class="ph__lead">Download your progress on the old site and import the file on the new site in the same browser profile.</p>
+    </header>
+    <p>Only ratings, completion history and preferences are copied. Written answers, notes and unfinished sessions stay on the original site. The file stays on your device.</p>
+    <div class="acts">
+      <button type="button" id="transfer-export" class="solid" disabled>Download progress</button>
+      {% if site.url == 'https://sepideh.io' %}
+      <a class="lcopen" href="https://sepideh-shamsizadeh.github.io/drill/transfer/">Open the old site</a>
+      {% elsif site.migration_target %}
+      <a class="lcopen" href="{{ site.migration_target }}/drill/transfer/">Open the new site</a>
+      {% endif %}
+    </div>
+    <section class="band" aria-labelledby="transfer-import-title">
+      <h2 id="transfer-import-title">Import progress</h2>
+      <p>Close other DRILL tabs on this site before importing.</p>
+      <label for="transfer-file">DRILL progress file</label>
+      <input id="transfer-file" type="file" accept=".json,application/json" disabled>
+      <div id="transfer-preview" hidden>
+        <p id="transfer-summary"></p>
+        <label><input type="checkbox" id="transfer-prefer"> Use file ratings and settings when they conflict with this browser</label>
+        <div class="acts"><button class="solid" type="button" id="transfer-apply">Import progress</button></div>
+      </div>
+      <p id="transfer-status" role="status"></p>
+      <p><a href="{{ '/drill/' | relative_url }}">Return to Daily Interview Drill</a></p>
+    </section>
+  </section>
+</main>
+<script src="{{ '/drill/transfer/transfer.js' | relative_url }}?v=1" defer></script>
+<script src="{{ '/drill/transfer/preview.js' | relative_url }}?v=1" defer></script>
