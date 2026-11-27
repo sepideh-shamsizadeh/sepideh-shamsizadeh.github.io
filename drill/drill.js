@@ -294,9 +294,7 @@ const CARDS=[];for(const t in D)D[t].forEach((x,i)=>CARDS.push({id:t+i,t,q:x[0],
 
 const communication = document.getElementById("communication");
 if (communication) {
-  communication.dispatchEvent(new CustomEvent("drill:question-bank", {
-    detail: { cards: CARDS, topics: TOP }
-  }));
+  communication.questionBank = { cards: CARDS, topics: TOP };
 }
 
 if (document.getElementById("today")) {

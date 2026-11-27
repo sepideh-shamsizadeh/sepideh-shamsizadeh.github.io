@@ -163,6 +163,6 @@
 
   const model = { key, scale, skills, defaultMinutes, dailySteps, empty, validMinutes, load, update,
     dayKey, remaining, score, selectQuestion, sessionPlan, assessment, recordAttempt, progress };
-  if (typeof module === "object") module.exports = model;
+  if (typeof document === "undefined" && typeof module === "object") module.exports = model;
   else root.DrillCommunicationModel = model;
 })(globalThis);

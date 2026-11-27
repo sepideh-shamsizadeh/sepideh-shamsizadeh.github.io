@@ -1,39 +1,165 @@
-.drill .communication .ph > a { color: var(--accent-ink); }
+.drill .communication {
+  --comm-control-border: color-mix(in srgb, var(--ink) 50%, var(--bg));
+  width: min(100%, 900px);
+  margin-inline: auto;
+  color: var(--text);
+}
+.drill .communication .ph > a,
+.communication #communication-load-error a { color: var(--accent-ink); }
 .drill .communication .ph { margin-bottom: 1.5rem; }
+.communication nav { margin-bottom: 1.75rem; }
+.communication :is(h2, h3) { color: var(--ink); }
+.communication h3 { margin-block: 0 .55rem; }
+.communication section > h3 { margin-top: 1.25rem; }
+.communication p { margin-block: 0 .85rem; }
 .communication #communication-status:empty { display: none; }
-.drill .communication .card { min-height: 0; }
-.communication .comm-grid {
+.communication [hidden] { display: none !important; }
+/* The legacy theme transitions foreground and surface colors independently. */
+.communication, .communication * { transition: none; }
+.communication :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+.communication #comm-prompt, .communication [data-heading] { scroll-margin-top: 5rem; }
+
+.communication .comm-grid,
+.communication .comm-lesson-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-  gap: .75rem 1rem;
+  gap: .85rem 1rem;
 }
-.communication label { display: grid; align-content: start; gap: .35rem; }
-.communication :is(textarea, input[type="number"]) {
+.communication .comm-lesson-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.communication .comm-filters { align-items: end; }
+.communication .comm-card {
+  padding: clamp(1.1rem, 4vw, 2rem);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.communication #comm-exercise .comm-card { border-block-start: 3px solid var(--accent-ink); }
+.communication .comm-card > :last-child { margin-bottom: 0; }
+.communication .comm-kicker {
+  font-size: .9rem;
+  font-weight: 650;
+  color: var(--accent-ink);
+}
+.communication .comm-lesson { display: flex; flex-direction: column; align-items: start; }
+.communication .comm-lesson button { margin-top: auto; }
+.communication .comm-lesson-status { font-size: .92rem; font-weight: 650; color: var(--accent-ink); }
+
+.communication label {
+  display: grid;
+  align-content: start;
+  gap: .4rem;
+  margin-bottom: .35rem;
+  color: var(--ink);
+  font-size: .95rem;
+  font-weight: 600;
+}
+.drill .communication :is(select, textarea, input[type="number"]) {
   font: inherit;
   color: var(--ink);
   background: var(--bg);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--comm-control-border);
   border-radius: var(--radius);
+  box-shadow: none;
   padding: .55rem .7rem;
+  margin: 0;
   min-width: 0;
 }
-.communication textarea { width: 100%; resize: vertical; }
+.communication select, .communication textarea { width: 100%; }
+.communication textarea { resize: vertical; }
+.communication textarea::placeholder { color: var(--muted); opacity: 1; }
 .communication input[type="number"] { width: 6rem; min-height: 44px; }
-.communication :is(fieldset, .comm-example, .comm-block) { margin: 1rem 0 0; }
-.communication fieldset { border: 1px solid var(--line-strong); padding: 1rem; min-inline-size: 0; }
-.communication legend { padding-inline: .4rem; font-weight: 700; }
-.communication summary { cursor: pointer; padding-block: .5rem; }
-.communication .comm-lesson { border-bottom: 1px solid var(--line); padding: .35rem 0 1rem; }
-.communication .comm-lesson summary { min-height: 44px; font-weight: 700; }
-.communication .comm-example { border-top: 1px solid var(--line-strong); padding-top: 1rem; }
-.communication .comm-example p { max-width: 70ch; }
-.communication .comm-lesson label { display: flex; align-items: center; gap: .55rem; width: fit-content; min-height: 44px; }
-.communication .comm-lesson input { width: 1.1rem; height: 1.1rem; }
-.communication .timer .clock { font-size: 1.65rem; }
-.communication :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
-.communication [hidden] { display: none !important; }
-.communication .comm-table { overflow-x: auto; }
-.communication .comm-table td:first-child { white-space: nowrap; }
-.communication .comm-stats { margin-block: 1rem; }
+.communication :is(fieldset, .comm-block) { margin: 1rem 0 0; }
+.communication fieldset {
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  min-inline-size: 0;
+}
+.communication legend {
+  width: auto;
+  margin: 0;
+  padding-inline: .4rem;
+  border: 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.drill .communication button { border-color: var(--comm-control-border); }
+.drill .communication button:enabled:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-ink);
+  color: var(--ink);
+}
+.drill .communication button:enabled:active {
+  background: var(--bg-soft);
+  color: var(--ink);
+}
+.drill .communication button:is(.solid, [aria-pressed="true"]):enabled:hover {
+  background: var(--primary-hover);
+  color: var(--primary-fg);
+}
+.drill .communication button:is(.solid, [aria-pressed="true"]):enabled:active {
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+}
+.drill .communication button:disabled {
+  cursor: default;
+  opacity: 1;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border-color: var(--line-strong);
+}
+.drill .communication .chip { min-height: 44px; }
+.communication .comm-disclosure { margin-top: .9rem; }
+.communication summary {
+  cursor: pointer;
+  padding-block: .55rem;
+  color: var(--ink);
+  font-weight: 650;
+}
+.communication summary:hover { color: var(--accent-ink); }
+.communication .comm-reveal {
+  padding: .85rem 1rem;
+  margin-top: .65rem;
+  border-left: 2px solid var(--accent-ink);
+  background: var(--bg-soft);
+  overflow-wrap: anywhere;
+}
+.communication .comm-reveal p:last-child { margin-bottom: 0; }
+.communication .timer { align-items: end; }
+.communication .timer > div { flex: 0 1 12rem; }
+.communication .timer .clock { align-self: center; font-size: 1.65rem; color: var(--ink); }
+
+.communication .comm-plan { padding-inline-start: 1.5rem; }
+.communication .comm-plan li { border-bottom: 1px solid var(--line-strong); padding: .55rem 0; }
+.communication .comm-plan li strong { float: inline-end; margin-inline-start: .5rem; }
+.communication .comm-session { padding: 0 0 .75rem; }
+.communication .comm-session p { margin: .35rem 0; }
+.communication .comm-session progress { width: 100%; accent-color: var(--accent-ink); }
 .communication .comm-current { font-size: .95rem; font-weight: 650; }
 .communication .comm-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.communication .comm-table { overflow-x: auto; margin-top: .55rem; }
+.communication .comm-table table { color: var(--text); border-color: var(--line-strong); }
+.communication .comm-table thead { background: var(--bg-soft); color: var(--ink); }
+.drill .communication .comm-table :is(th, td) { border-color: var(--line-strong); }
+.communication .comm-table td:first-child { white-space: nowrap; }
+.communication .comm-stats { margin-block: 1rem; grid-auto-rows: 1fr; }
+.communication .stat { background: var(--bg-raised); border-color: var(--line-strong); }
+.communication .stat b { color: var(--ink); }
+.communication .comm-scores { margin: 0; }
+.communication .comm-scores > div {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+  padding-block: .6rem;
+  border-bottom: 1px solid var(--line-strong);
+}
+.communication .comm-scores dd { margin: 0; text-align: end; }
+.communication [data-retry] { text-align: start; margin-bottom: .3rem; }
+
+@media (max-width: 620px) {
+  .communication .comm-lesson-grid { grid-template-columns: 1fr; }
+}

@@ -6,15 +6,11 @@ const model = require("../drill/communication/model.js");
 const content = require("../drill/communication/content.js");
 
 const source = fs.readFileSync(require.resolve("../drill/drill.js"), "utf8");
-let bank;
+const mount = {};
 vm.runInNewContext(source, {
-  document: {
-    getElementById: id => id === "communication" ? {
-      dispatchEvent: ({ detail }) => { bank = content.questionBank(detail.cards, detail.topics); }
-    } : null
-  },
-  CustomEvent: class { constructor(name, { detail }) { this.detail = detail; } }
+  document: { getElementById: id => id === "communication" ? mount : null }
 });
+const bank = content.questionBank(mount.questionBank.cards, mount.questionBank.topics);
 const memory = () => {
   const values = new Map();
   return {
