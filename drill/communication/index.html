@@ -4,11 +4,11 @@ title: Technical Communication
 permalink: /drill/communication/
 ---
 
-<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}?v=1.0.1-transfer.1">
-<link rel="stylesheet" href="{{ '/drill/communication/communication.css' | relative_url }}?v=1.0.1-transfer.1">
+<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}?v=1.1.0">
+<link rel="stylesheet" href="{{ '/drill/communication/communication.css' | relative_url }}?v=1.1.0">
 
 <main id="main" class="wrap drill">
-  <section id="communication" class="band communication">
+  <section id="communication" class="band communication" data-coach-api="{{ site.drill_coach_api | escape }}">
     <header class="ph">
       <a href="{{ '/drill/' | relative_url }}">Daily Interview Drill</a>
       <h1 class="ph__title">Technical Communication</h1>
@@ -29,10 +29,12 @@ permalink: /drill/communication/
   </section>
 </main>
 
-<script src="{{ '/drill/communication/content.js' | relative_url }}?v=1.0.1-transfer.1" defer></script>
-<script src="{{ '/drill/communication/model.js' | relative_url }}?v=1.0.1-transfer.1" defer></script>
-<script src="{{ '/drill/drill.js' | relative_url }}?v=1.0.1-transfer.1" defer></script>
-<script src="{{ '/drill/communication/communication.js' | relative_url }}?v=1.0.1-transfer.1" defer></script>
+<script src="{{ '/drill/communication/content.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/communication/model.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/drill.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/communication/coach-progress.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/communication/coach.js' | relative_url }}?v=1.1.0" defer></script>
+<script src="{{ '/drill/communication/communication.js' | relative_url }}?v=1.1.0" defer></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     var panel = document.getElementById("communication-view");
