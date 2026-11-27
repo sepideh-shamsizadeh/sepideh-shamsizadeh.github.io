@@ -8,6 +8,7 @@ title_separator : "-"
 name            : "Sepideh Shamsizadeh"
 description     : "Physical AI and robotics engineer in Zurich: robot perception, multimodal sensor fusion and edge AI."
 url             : https://sepideh-shamsizadeh.github.io
+migration_target: https://sepideh.io
 baseurl         : ""
 repository      : "sepideh-shamsizadeh/sepideh-shamsizadeh.github.io"
 og_image        : "sepideh-shamsizadeh.jpg"   # link-preview image, in /images/
