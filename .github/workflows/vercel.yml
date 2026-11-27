@@ -22,6 +22,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Check Vercel credential and project access
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          const { VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID } = process.env;
+          const project = "/v9/projects/" + encodeURIComponent(VERCEL_PROJECT_ID);
+          for (const [label, path] of [
+            ["user", "/v2/user"],
+            ["team project", project + "?teamId=" + encodeURIComponent(VERCEL_ORG_ID)],
+            ["unscoped project", project]
+          ]) {
+            const response = await fetch("https://api.vercel.com" + path, {
+              headers: { Authorization: "Bearer " + VERCEL_TOKEN }
+            });
+            const body = await response.json();
+            const code = body.error?.code;
+            console.log(label + " HTTP " + response.status +
+              (typeof code === "string" && /^[a-z_]{1,40}$/.test(code) ? " (" + code + ")" : ""));
+          }
+          JS
       - run: node --test tests/drill-communication.test.cjs tests/drill-transfer.test.cjs
       - name: Build preview
         run: bash scripts/build-vercel.sh preview
