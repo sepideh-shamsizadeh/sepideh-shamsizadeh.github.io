@@ -47,8 +47,12 @@ Pushing to `master` builds and deploys the site with GitHub Actions (`.github/wo
 
 Open **Technical Communication** from `/drill/`. Practice by category or topic, or choose a random prompt. Try an answer aloud or in writing, then open the structure hint and example as needed. Rate each answer yourself and save it to unlock the next prompt.
 
-Daily practice includes a configurable 20-minute plan and a 5-minute quick plan. Each step has a suggested time budget and a timer you can start yourself. Save the review answer to complete the session. The module also includes 12 lessons and a progress view with skill averages, questions to revisit, a practice streak, and the past seven days of activity.
+Start the 20-minute daily plan with the displayed durations, or open **Customize session durations** to adjust them. A 5-minute quick plan is also available. Each step has a suggested time budget and a timer you can start yourself. Save the review answer to complete the session. The module includes 12 lessons with examples and exercises, and a progress view with skill averages, questions to revisit, a practice streak, and the past seven days of activity.
 
 Communication data uses the versioned `drill-communication-v1` browser storage key. Saved attempts, lesson checkmarks, session settings and the current session step persist on refresh. Draft answers and running timers last for the current page visit. Progress lives in the current browser profile and site origin. The module uses static assets and self-assessment, with no backend, accounts, transcription, or paid APIs.
 
-Run the model tests with `node --test tests/drill-communication.test.cjs`. For browser tests, start the Jekyll preview and run `node --test tests/drill-communication.browser.cjs` with Playwright available. Set `PLAYWRIGHT_PATH` for an external install, `CHROME_PATH` to use an installed Chrome binary, and `DRILL_BASE_URL` to override the default `http://localhost:4000`.
+Run the model tests with `node --test tests/drill-communication.test.cjs`. For browser tests, start Jekyll with both `_config.yml` and `_config.dev.yml` so the shared site assets resolve to the local preview. Run `node --test tests/drill-communication.browser.cjs` with Playwright available. Set `PLAYWRIGHT_PATH` for an external install, `CHROME_PATH` to use an installed Chrome binary, and `DRILL_BASE_URL` to override the default `http://localhost:4000`.
+
+To test a rendered Jekyll build without a server, set `DRILL_BUILD_DIR` to the output directory and `DRILL_BASE_URL` to the origin configured in that build. Omit `DRILL_BUILD_DIR` to test a running preview or production. Set `DRILL_SCREENSHOT_DIR` to save example desktop and mobile screenshots during the run.
+
+When changing the DRILL page scripts or styles, update their version query strings in both DRILL entry pages so browsers refetch compatible assets after deployment.

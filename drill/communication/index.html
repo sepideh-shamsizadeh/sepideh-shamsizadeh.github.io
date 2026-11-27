@@ -4,8 +4,8 @@ title: Technical Communication
 permalink: /drill/communication/
 ---
 
-<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}">
-<link rel="stylesheet" href="{{ '/drill/communication/communication.css' | relative_url }}">
+<link rel="stylesheet" href="{{ '/drill/drill.css' | relative_url }}?v=1.0.1">
+<link rel="stylesheet" href="{{ '/drill/communication/communication.css' | relative_url }}?v=1.0.1">
 
 <main id="main" class="wrap drill">
   <section id="communication" class="band communication">
@@ -15,17 +15,30 @@ permalink: /drill/communication/
       <p class="ph__lead">Practice explaining your technical work in interviews.</p>
     </header>
     <nav class="chips" aria-label="Technical Communication sections">
-      <button class="chip" data-view="practice" aria-pressed="true">Practice</button>
-      <button class="chip" data-view="daily" aria-pressed="false">Daily practice</button>
-      <button class="chip" data-view="lessons" aria-pressed="false">Lessons</button>
-      <button class="chip" data-view="progress" aria-pressed="false">Progress</button>
+      <button class="chip" data-view="practice" aria-pressed="true" disabled>Practice</button>
+      <button class="chip" data-view="daily" aria-pressed="false" disabled>Daily practice</button>
+      <button class="chip" data-view="lessons" aria-pressed="false" disabled>Lessons</button>
+      <button class="chip" data-view="progress" aria-pressed="false" disabled>Progress</button>
     </nav>
     <p role="status" id="communication-status"></p>
-    <div id="communication-view"></div>
+    <p id="communication-loading" role="status">Loading the question bank…</p>
+    <p id="communication-load-error" hidden><a href="{{ '/drill/communication/' | relative_url }}">Reload Technical Communication</a></p>
+    <div id="communication-view" aria-busy="true"></div>
+    <noscript><p>Enable JavaScript to use Technical Communication.</p></noscript>
   </section>
 </main>
 
-<script src="{{ '/drill/communication/content.js' | relative_url }}" defer></script>
-<script src="{{ '/drill/communication/model.js' | relative_url }}" defer></script>
-<script src="{{ '/drill/communication/communication.js' | relative_url }}" defer></script>
-<script src="{{ '/drill/drill.js' | relative_url }}" defer></script>
+<script src="{{ '/drill/communication/content.js' | relative_url }}?v=1.0.1" defer></script>
+<script src="{{ '/drill/communication/model.js' | relative_url }}?v=1.0.1" defer></script>
+<script src="{{ '/drill/drill.js' | relative_url }}?v=1.0.1" defer></script>
+<script src="{{ '/drill/communication/communication.js' | relative_url }}?v=1.0.1" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var panel = document.getElementById("communication-view");
+    if (panel.getAttribute("aria-busy") !== "true") return;
+    panel.setAttribute("aria-busy", "false");
+    document.getElementById("communication-loading").textContent =
+      "Technical Communication could not load its required files.";
+    document.getElementById("communication-load-error").hidden = false;
+  });
+</script>

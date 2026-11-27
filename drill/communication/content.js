@@ -136,6 +136,6 @@
   }
 
   const content = { categories, lessons, questionBank };
-  if (typeof module === "object") module.exports = content;
+  if (typeof document === "undefined" && typeof module === "object") module.exports = content;
   else root.DrillCommunicationContent = content;
 })(globalThis);

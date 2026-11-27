@@ -4,6 +4,9 @@
   const status = document.getElementById("communication-status");
   const content = window.DrillCommunicationContent;
   const model = window.DrillCommunicationModel;
+  const source = root.questionBank;
+  if (!content || !model || !source?.cards?.length) return;
+
   const { categories, lessons } = content;
   const { skills, scale } = model;
   const escape = value => String(value).replace(/[&<>"']/g, character => ({
@@ -14,28 +17,20 @@
   const fields = form => Object.fromEntries(new FormData(form));
   const formatScore = value => value === null ? "—" : `${value.toFixed(1)} / 5`;
 
-  let bank = [];
+  const bank = content.questionBank(source.cards, source.topics);
+  if (!bank.length) return;
   let state = model.empty();
   let view = "practice";
   let filters = { topic: "", category: "" };
   let question;
+  let activeLesson = null;
+  const visitedLessons = new Set();
   let interval;
   let timerSeconds = "";
   let deadline = 0;
   let draft = {};
   let draftKey = "";
   const drafts = new Map();
-
-  root.addEventListener("drill:question-bank", event => {
-    bank = content.questionBank(event.detail.cards, event.detail.topics);
-    try {
-      state = model.load(window.localStorage);
-    } catch {
-      announce("Communication progress could not be loaded. Check your browser storage settings.");
-    }
-    question = model.selectQuestion(bank, state.attempts);
-    render();
-  });
 
   function announce(message) {
     status.textContent = message;
@@ -68,8 +63,8 @@
     if (!form) return;
     draft = {
       ...fields(form),
-      example: panel.querySelector("#comm-example").open,
-      hint: panel.querySelector("#comm-hint").open
+      example: !panel.querySelector("#comm-example").hidden,
+      hint: !panel.querySelector("#comm-hint").hidden
     };
     drafts.set(draftKey, { draft, deadline });
   }
@@ -81,13 +76,17 @@
     deadline = 0;
   }
 
-  root.querySelector("nav").addEventListener("click", event => {
-    const button = event.target.closest("[data-view]");
-    if (!button || button.dataset.view === view) return;
+  function showView(next) {
+    if (next === view) return;
     capture();
-    view = button.dataset.view;
+    view = next;
     announce("");
     render(true);
+  }
+
+  root.querySelector("nav").addEventListener("click", event => {
+    const button = event.target.closest("[data-view]");
+    if (button) showView(button.dataset.view);
   });
 
   function renderPractice() {
@@ -96,15 +95,15 @@
     const topicsForCategory = new Set(bank.filter(q => !filters.category || q.category === filters.category).map(q => q.topic));
     panel.innerHTML = `
       <h2 tabindex="-1" data-heading>Practice</h2>
-      <div class="comm-grid">
-        <label>Category <select id="comm-category">${option("", "All categories", filters.category)}
+      <div class="comm-grid comm-filters">
+        <div><label for="comm-category">Category</label><select id="comm-category">${option("", "All categories", filters.category)}
           ${Object.entries(categories).filter(([id]) => categoriesForTopic.has(id))
-            .map(([id, [label]]) => option(id, label, filters.category)).join("")}</select></label>
-        <label>Topic <select id="comm-topic">${option("", "All topics", filters.topic)}
+            .map(([id, [label]]) => option(id, label, filters.category)).join("")}</select></div>
+        <div><label for="comm-topic">Topic</label><select id="comm-topic">${option("", "All topics", filters.topic)}
           ${[...topics].filter(([id]) => topicsForCategory.has(id))
-            .map(([id, label]) => option(id, label, filters.topic)).join("")}</select></label>
+            .map(([id, label]) => option(id, label, filters.topic)).join("")}</select></div>
+        <button type="button" id="comm-random">Random practice</button>
       </div>
-      <div class="acts"><button type="button" id="comm-random">Random practice</button></div>
       <div class="comm-block" id="comm-exercise"></div>`;
     for (const filter of ["category", "topic"]) {
       panel.querySelector(`#comm-${filter}`).onchange = event => {
@@ -120,11 +119,15 @@
     renderExercise(question);
   }
 
-  function nextQuestion(focus = false) {
+  function nextQuestion(focus = false, skipping = false) {
     const selected = model.selectQuestion(bank, state.attempts, {
       topic: filters.topic, category: filters.category ? [filters.category] : undefined,
       exclude: question ? [question.id] : []
     });
+    if (skipping && selected?.id === question?.id) {
+      announce("This is the only question for these filters. Change a filter or try Random practice.");
+      return;
+    }
     question = selected;
     resetExercise("");
     render();
@@ -152,47 +155,59 @@
     const durations = new Map([["", "Off"], ...timerOptions.filter(([value], index) =>
       timerOptions.findIndex(([candidate]) => candidate === value) === index)]);
     mount.innerHTML = `
-      <article class="card">
-        <span class="tag">${escape(current.topicLabel)} · ${escape(label)}</span>
+      <article class="comm-card">
+        <span class="comm-kicker">${escape(current.topicLabel)} · ${escape(label)}</span>
         <h3 class="q" id="comm-prompt" tabindex="-1">${escape(current.prompt)}</h3>
         ${step?.review ? `<p>Review your earlier attempt, then give a revised answer.</p>
-          <p>Earlier self-assessment: ${formatScore(model.score(prior))}</p>
+          <p>Earlier self-assessment · ${formatScore(model.score(prior))}</p>
           ${prior.answer ? `<p class="comm-answer">${escape(prior.answer)}</p>` : ""}
-          ${prior.notes ? `<p class="comm-answer">Earlier notes: ${escape(prior.notes)}</p>` : ""}` : ""}
+          ${prior.notes ? `<p class="comm-answer">Earlier notes · ${escape(prior.notes)}</p>` : ""}` : ""}
         <form id="comm-assessment">
           <div class="timer">
-            <label>Countdown <select name="duration" id="comm-time">${[...durations].map(([value, text]) =>
-              option(value, text, duration)).join("")}</select></label>
+            <div><label for="comm-time">Countdown</label><select name="duration" id="comm-time">${[...durations].map(([value, text]) =>
+              option(value, text, duration)).join("")}</select></div>
             <button type="button" id="comm-start">Start timer</button>
             <button type="button" id="comm-stop">Reset timer</button>
             <span role="timer" class="clock" id="comm-clock" aria-label="Time remaining"></span>
           </div>
-          <details id="comm-hint" ${draft.hint ? "open" : ""}><summary>Answer structure hint</summary><p>${escape(structure)}</p></details>
+          <button class="comm-disclosure" type="button" aria-controls="comm-hint" aria-expanded="${Boolean(draft.hint)}">Answer structure hint</button>
+          <p id="comm-hint" class="comm-reveal" ${draft.hint ? "" : "hidden"}>${escape(structure)}</p>
           <label class="comm-block">Written answer (optional)
             <textarea name="answer" rows="4" placeholder="Answer aloud or write here.">${escape(draft.answer ?? "")}</textarea>
           </label>
-          <details id="comm-example" class="comm-example" ${draft.example ? "open" : ""}>
-            <summary>Example answer</summary>
+          <button class="comm-disclosure" type="button" aria-controls="comm-example" aria-expanded="${Boolean(draft.example)}">${draft.example ? "Hide example answer" : "Show example answer"}</button>
+          <div id="comm-example" class="comm-reveal" ${draft.example ? "" : "hidden"}>
             <p>${escape(current.example)}</p>
             ${current.source ? `<details><summary>Related DRILL flashcard</summary><p><strong>${escape(current.source.q)}</strong></p>
               <p>${escape(current.source.a)}</p></details>` : ""}
-          </details>
+          </div>
           <fieldset>
             <legend>Self-assessment</legend>
             <details><summary>Scoring scale</summary><ol>${scale.map(text => `<li>${escape(text)}</li>`).join("")}</ol></details>
-            <div class="comm-grid">${ratingFields.map(([id, text]) => `<label>${escape(text)}
-              <select name="${id}" required>${option("", "Select rating", draft[id] ?? "")}
-              ${scale.map((_, index) => option(String(index + 1), index + 1, draft[id])).join("")}</select></label>`).join("")}</div>
+            <div class="comm-grid">${ratingFields.map(([id, text]) => `<div>
+              <label for="comm-rate-${id}">${escape(text)}</label>
+              <select id="comm-rate-${id}" name="${id}" required>${option("", "Select rating", draft[id] ?? "")}
+              ${scale.map((_, index) => option(String(index + 1), index + 1, draft[id])).join("")}</select></div>`).join("")}</div>
             <label class="comm-block">Personal notes and knowledge gaps (optional)
               <textarea name="notes" rows="3">${escape(draft.notes ?? "")}</textarea>
             </label>
           </fieldset>
           <div class="acts">
-            <button class="solid" type="submit">${step?.review ? "Save and finish session" : "Save and continue"}</button>
-            ${session ? "" : '<button type="button" id="comm-next">Skip question</button>'}
+            <button class="solid" type="submit">${step?.review ? "Save and finish session" : "Save and next question"}</button>
+            ${session ? "" : '<button type="button" id="comm-next">Skip to next question</button>'}
           </div>
         </form>
       </article>`;
+    for (const button of mount.querySelectorAll(".comm-disclosure")) {
+      const target = mount.querySelector(`#${button.getAttribute("aria-controls")}`);
+      button.onclick = () => {
+        target.hidden = !target.hidden;
+        button.setAttribute("aria-expanded", String(!target.hidden));
+        if (target.id === "comm-example") {
+          button.textContent = target.hidden ? "Show example answer" : "Hide example answer";
+        }
+      };
+    }
     const form = mount.querySelector("form");
     const timer = form.elements.duration;
     const start = mount.querySelector("#comm-start");
@@ -250,7 +265,7 @@
     const skip = mount.querySelector("#comm-next");
     if (skip) skip.onclick = () => {
       announce("");
-      nextQuestion(true);
+      nextQuestion(true, true);
     };
   }
 
@@ -262,7 +277,11 @@
         .sort((a, b) => model.score(a) - model.score(b))[0] : undefined;
       panel.innerHTML = `
         <h2 tabindex="-1" data-heading>${session.mode === "daily" ? "Daily practice" : "Quick practice"}</h2>
-        <p class="comm-current">Step ${session.index + 1} of ${session.steps.length} · ${escape(step.label)} · ${step.minutes} min</p>
+        <div class="comm-session">
+          <p class="comm-current">Step ${session.index + 1} of ${session.steps.length} · ${escape(step.label)} · ${escape(step.minutes)} min</p>
+          <progress aria-label="Session steps completed" value="${session.index}" max="${session.steps.length}"></progress>
+          <p>${session.steps.length - session.index - 1} steps after this one</p>
+        </div>
         <div id="comm-exercise"></div>
         <details class="comm-block"><summary>End this session early</summary>
           <p>Saved attempts will still count toward your progress.</p>
@@ -282,21 +301,25 @@
     }
     panel.innerHTML = `
       <h2 tabindex="-1" data-heading>Daily practice</h2>
-      <p>Practice a mix of categories and revisit questions with low self-assessments.</p>
-      <form id="comm-plan">
-        <fieldset>
-          <legend>20-minute session plan</legend>
-          <p>Adjust the minutes for each step. The total must be 20.</p>
-          <div class="comm-grid">${model.dailySteps.map((step, index) => `
-            <label>${escape(step.label)} (min)
-              <input type="number" name="minutes" min="1" max="16" step="1" value="${state.minutes[index]}" required>
-            </label>`).join("")}</div>
-        </fieldset>
-        <div class="acts">
-          <button type="submit" class="solid">Start 20-minute session</button>
-          <button type="button" id="comm-quick">Start 5-minute quick practice</button>
-        </div>
-      </form>`;
+      <div class="comm-card">
+        <h3>20-minute session plan</h3>
+        <ol class="comm-plan">${model.dailySteps.map((step, index) => `
+          <li><span>${escape(step.label)}</span><strong>${state.minutes[index]} min</strong></li>`).join("")}</ol>
+        <form id="comm-plan" novalidate>
+          <div class="acts">
+            <button type="submit" class="solid">Start daily practice</button>
+            <button type="button" id="comm-quick">Start 5-minute quick practice</button>
+          </div>
+          <details id="comm-settings" class="comm-block">
+            <summary>Customize session durations</summary>
+            <p>Set a whole number of minutes for each step. The total must be 20.</p>
+            <div class="comm-grid">${model.dailySteps.map((step, index) => `
+              <label>${escape(step.label)} (min)
+                <input type="number" name="minutes" min="1" max="16" step="1" value="${state.minutes[index]}" required>
+              </label>`).join("")}</div>
+          </details>
+        </form>
+      </div>`;
     const form = panel.querySelector("#comm-plan");
     const start = (mode, minutes) => {
       if (!persist(data => {
@@ -314,7 +337,8 @@
       event.preventDefault();
       const minutes = new FormData(form).getAll("minutes").map(Number);
       if (!model.validMinutes(minutes)) {
-        announce("The five steps must add up to 20 minutes.");
+        form.querySelector("#comm-settings").open = true;
+        announce("Use positive whole minutes. The five steps must add up to 20 minutes.");
         return;
       }
       start("daily", minutes);
@@ -323,36 +347,97 @@
   }
 
   function renderLessons() {
-    panel.innerHTML = `<h2 tabindex="-1" data-heading>Lessons</h2>${lessons.map(
-      ([id, title, objective, explanation, framework, weak, improved, exercises]) => `
-        <details class="comm-lesson">
-          <summary>${escape(title)}<span data-lesson-status>${state.lessons[id] ? " · Complete" : ""}</span></summary>
-          <p><strong>Objective.</strong> ${escape(objective)}</p>
+    if (activeLesson !== null) {
+      renderLesson();
+      return;
+    }
+    panel.innerHTML = `
+      <h2 tabindex="-1" data-heading>Lessons</h2>
+      <div class="comm-lesson-grid">${lessons.map(([id, title, objective, explanation], index) => {
+        const complete = Boolean(state.lessons[id]);
+        const action = complete ? "Review lesson" : visitedLessons.has(id) ? "Continue lesson" : "Start lesson";
+        return `<article class="comm-card comm-lesson">
+          <header>
+            <p class="comm-kicker">Lesson ${index + 1} of ${lessons.length}</p>
+            <h3>${escape(title)}</h3>
+          </header>
           <p>${escape(explanation)}</p>
-          <p><strong>Framework.</strong> ${escape(framework)}</p>
-          <p><strong>Weak answer.</strong> ${escape(weak)}</p>
-          <p><strong>Improved answer.</strong> ${escape(improved)}</p>
-          <h3>Try it</h3>
-          <ol>${exercises.map(text => `<li>${escape(text)}</li>`).join("")}</ol>
-          <label><input type="checkbox" value="${id}" ${state.lessons[id] ? "checked" : ""}> Mark lesson complete</label>
-        </details>`).join("")}`;
-    for (const checkbox of panel.querySelectorAll("input[type=checkbox]")) {
-      checkbox.onchange = () => {
-        const id = checkbox.value;
-        if (!persist(data => {
-          if (checkbox.checked) data.lessons[id] = model.dayKey();
-          else delete data.lessons[id];
-        })) checkbox.checked = Boolean(state.lessons[id]);
-        else announce(checkbox.checked ? "Lesson completed." : "Lesson marked incomplete.");
-        checkbox.closest("details").querySelector("[data-lesson-status]").textContent =
-          checkbox.checked ? " · Complete" : "";
+          <p><strong>Objective.</strong> ${escape(objective)}</p>
+          <p class="comm-lesson-status">${complete ? "Complete" : visitedLessons.has(id) ? "In progress" : "To do"}</p>
+          <button type="button" data-lesson="${index}" aria-label="${action}: ${escape(title)}">${action}</button>
+        </article>`;
+      }).join("")}</div>`;
+    for (const button of panel.querySelectorAll("[data-lesson]")) {
+      button.onclick = () => {
+        activeLesson = Number(button.dataset.lesson);
+        visitedLessons.add(lessons[activeLesson][0]);
+        render(true);
       };
     }
+  }
+
+  function renderLesson() {
+    const [id, title, objective, explanation, framework, weak, improved, exercises] = lessons[activeLesson];
+    const complete = Boolean(state.lessons[id]);
+    panel.innerHTML = `
+      <button type="button" id="comm-lesson-back">All lessons</button>
+      <article class="comm-card comm-block">
+        <p class="comm-kicker">Lesson ${activeLesson + 1} of ${lessons.length}</p>
+        <h2 tabindex="-1" data-heading>${escape(title)}</h2>
+        <p><strong>Objective.</strong> ${escape(objective)}</p>
+        <section><h3>How it works</h3><p>${escape(explanation)}</p></section>
+        <section><h3>Communication framework</h3><p>${escape(framework)}</p></section>
+        <div class="comm-grid comm-block">
+          <section class="comm-reveal"><h3>Weak answer</h3><p>${escape(weak)}</p></section>
+          <section class="comm-reveal"><h3>Improved answer</h3><p>${escape(improved)}</p></section>
+        </div>
+        <section><h3>Try it</h3><ol>${exercises.map(text => `<li>${escape(text)}</li>`).join("")}</ol></section>
+        <p class="comm-lesson-status">${complete ? "Complete" : "In progress"}</p>
+        <div class="acts">
+          <button type="button" class="${complete ? "" : "solid"}" id="comm-lesson-complete">${complete ? "Mark as incomplete" : "Mark as completed"}</button>
+          ${activeLesson < lessons.length - 1 ? '<button type="button" id="comm-lesson-next">Next lesson</button>' : ""}
+        </div>
+      </article>`;
+    panel.querySelector("#comm-lesson-back").onclick = () => {
+      const index = activeLesson;
+      activeLesson = null;
+      announce("");
+      render();
+      panel.querySelector(`[data-lesson="${index}"]`).focus();
+    };
+    panel.querySelector("#comm-lesson-complete").onclick = () => {
+      if (!persist(data => {
+        if (complete) delete data.lessons[id];
+        else data.lessons[id] = model.dayKey();
+      })) return;
+      announce(complete ? "Lesson marked incomplete." : "Lesson completed.");
+      render();
+      panel.querySelector("#comm-lesson-complete").focus();
+    };
+    const next = panel.querySelector("#comm-lesson-next");
+    if (next) next.onclick = () => {
+      activeLesson += 1;
+      visitedLessons.add(lessons[activeLesson][0]);
+      announce("");
+      render(true);
+    };
   }
 
   function renderProgress() {
     const stats = model.progress(state);
     const stat = (value, label) => `<div class="stat"><b>${escape(value)}</b><span>${escape(label)}</span></div>`;
+    if (!stats.attempts) {
+      panel.innerHTML = `
+        <h2 tabindex="-1" data-heading>Progress</h2>
+        <div class="comm-card">
+          <h3>No practice attempts yet</h3>
+          <p>Save your first self-assessment to see skill scores and practice activity here.</p>
+          ${stat(`${stats.lessons} / ${lessons.length}`, "Lessons completed")}
+          <div class="acts"><button id="comm-first-practice" type="button" class="solid">Start practice</button></div>
+        </div>`;
+      panel.querySelector("#comm-first-practice").onclick = () => showView("practice");
+      return;
+    }
     panel.innerHTML = `
       <h2 tabindex="-1" data-heading>Progress</h2>
       <div class="comm-grid comm-stats">
@@ -364,10 +449,11 @@
         ${stat(stats.quick, "Quick sessions completed")}
       </div>
       <div class="comm-grid">
-        <section><h3>Self-assessment by skill</h3>
-          <ul>${Object.entries(stats.bySkill).map(([id, value]) => `<li>${escape(skills[id])}: ${formatScore(value)}</li>`).join("")}</ul>
+        <section class="comm-card"><h3>Self-assessment by skill</h3>
+          <dl class="comm-scores">${Object.entries(stats.bySkill).map(([id, value]) =>
+            `<div><dt>${escape(skills[id])}</dt><dd>${value === null ? "No ratings yet" : formatScore(value)}</dd></div>`).join("")}</dl>
         </section>
-        <section><h3>Questions and categories to revisit</h3>
+        <section class="comm-card"><h3>Questions and categories to revisit</h3>
           <p>Based on the latest self-assessment for each question. Scores below 3 are flagged.</p>
           ${stats.weak.length ? `<ul>${stats.weak.map(attempt => `<li>
             <button type="button" data-retry="${escape(attempt.questionId)}">${escape(bank.find(q => q.id === attempt.questionId)?.prompt ?? attempt.questionId)}</button>
@@ -376,8 +462,8 @@
             `<li>${escape(categories[id]?.[0] ?? id)}: ${formatScore(value)}</li>`).join("")}</ul>` : "<p>No categories flagged.</p>"}
         </section>
       </div>
-      <h3>Last seven days</h3>
-      <div class="comm-table"><table>
+      <h3 class="comm-block" id="comm-week-heading">Last seven days</h3>
+      <div class="comm-table" role="region" aria-labelledby="comm-week-heading" tabindex="0"><table>
         <thead><tr><th scope="col">Date</th><th scope="col">Attempts</th><th scope="col">Average self-assessment</th><th scope="col">Sessions</th></tr></thead>
         <tbody>${stats.weekly.map(day =>
           `<tr><td>${day.day}</td><td>${day.attempts}</td><td>${formatScore(day.average)}</td><td>${day.sessions}</td></tr>`).join("")}</tbody>
@@ -395,4 +481,14 @@
       };
     }
   }
+  try {
+    state = model.load(window.localStorage);
+  } catch {
+    announce("Communication progress could not be loaded. Check your browser storage settings.");
+  }
+  question = model.selectQuestion(bank, state.attempts);
+  render();
+  document.getElementById("communication-loading").hidden = true;
+  panel.setAttribute("aria-busy", "false");
+  for (const button of root.querySelectorAll("[data-view]")) button.disabled = false;
 })();
