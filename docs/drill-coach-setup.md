@@ -207,3 +207,11 @@ A reservation for a call that times out or fails without reported usage stays he
 ## Future public access
 
 Transcription and evaluation are limited to the owner account. Before opening them to other users, add per-user identities and quotas in the ledger (the `transcriptions` and `evaluations` tables are keyed by request, so a user column and per-user daily limits fit the existing reservations). Also add server-side duration checks before the call. A low-bitrate recording can run longer than 5 minutes within the 6 MiB size cap, so the reservation only stays safe while the count cap keeps the total under the free allocation.
+
+### Evaluation failures in DRILL V1.2.1
+
+A provider rejection with no inference usage retains its daily attempt slot and releases its monthly reservation. If the provider reports usage for unusable feedback, DRILL accounts for that usage and permits an explicit retry with a new ID. Network errors, timeouts and incomplete accounting keep the full reservation. DRILL blocks another request for that fingerprint for up to 15 minutes, then permits an explicit new attempt while retaining the earlier cost estimate. The browser keeps the original request ID while delivery is uncertain. The Worker never retries a provider call automatically.
+
+The owner-only evaluation response can show a random request reference, a validated provider request ID and a numeric provider status for troubleshooting. The Worker sends the random reference as the provider client request ID. Keep Workers Logs disabled and share only those references and the approximate incident time when investigating an error. The attempt ledger stores the keyed fingerprint and accounting metadata.
+
+The protected site preview uses the existing preview configuration with the Worker URL blank. Browser tests use mocked Google sign-in, speech recognition and evaluation. Production Google sign-in prefers FedCM where supported, and the DRILL communication page permits popup communication through a route-specific opener policy.

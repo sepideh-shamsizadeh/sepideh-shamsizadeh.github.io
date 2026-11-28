@@ -117,8 +117,8 @@ for (const theme of ["dark", "light"]) {
       await page.getByText("Improved example answer", { exact: true }).click();
       assert.ok(await page.getByText("Start with a direct definition.", { exact: false }).isVisible());
       await assertNoOperationalDetails();
-      await byButton("Save scores").click();
       await page.getByText("Scores saved.", { exact: true }).waitFor();
+      assert.equal(await page.locator("#comm-self").isVisible(), false);
       await byButton("Try again").click();
       await input.fill("Revised private answer with one concrete example");
       await evaluation().click();
@@ -126,9 +126,8 @@ for (const theme of ["dark", "light"]) {
       assert.ok(await page.getByText("Overall 3.0 → 3.0", { exact: true }).isVisible());
       assert.ok(await page.getByText("Original private answer with <markup>", { exact: true }).isVisible());
       assert.ok(await page.getByText("Revised private answer with one concrete example", { exact: true }).isVisible());
-      await page.getByLabel("Review again tomorrow").check();
-      await byButton("Save scores").click();
-      await page.getByText("marked for review tomorrow", { exact: false }).waitFor();
+      await byButton("Review again tomorrow").click();
+      await page.getByText("Marked for review tomorrow.", { exact: true }).waitFor();
       const snapshot = await page.evaluate(() => JSON.stringify(localStorage));
       assert.ok(snapshot.includes("drill-ai-coach-v1"));
       assert.ok(!snapshot.includes("private answer") && !snapshot.includes("Start with a direct definition"));
@@ -150,25 +149,15 @@ for (const theme of ["dark", "light"]) {
       assert.equal(calls, 3);
 
       // Daily (quick) session: evaluate each answer step, then compare on the review step.
-      const rateAll = async value => {
-        for (const select of await page.locator("#comm-assessment select[name]:not([name='duration'])").all()) {
-          await select.selectOption(value);
-        }
-      };
       await coach().click();
       await signIn();
-      for (const [index, text] of ["First session answer", "Second session answer"].entries()) {
-        if (index) {
-          await coach().click();
-          await evaluation().waitFor();
-        }
+      for (const text of ["First session answer", "Second session answer"]) {
+        await evaluation().waitFor();
         await input.fill(text);
         await evaluation().click();
         await page.getByRole("heading", { name: "Mock score 3.0 out of 5" }).waitFor();
-        await rateAll("1");
         await byButton("Save and next question").click();
       }
-      await coach().click();
       await page.getByText("Earlier score in this session: 3.0 / 5.", { exact: false }).waitFor();
       await evaluation().waitFor();
       await input.fill("Revised session answer with a measurable result");
@@ -178,11 +167,13 @@ for (const theme of ["dark", "light"]) {
       assert.ok(await page.getByText("Revised session answer with a measurable result", { exact: true }).last().isVisible());
       assert.equal(calls, 6);
       await assertNoOperationalDetails();
-      await rateAll("3");
       await byButton("Save and finish session").click();
       await page.getByText("Session complete.", { exact: false }).waitFor();
       const sessionStorage = await page.evaluate(() => JSON.stringify(localStorage));
       assert.ok(!sessionStorage.includes("session answer"));
+      const practice = await page.evaluate(() => JSON.parse(localStorage.getItem("drill-communication-v1")));
+      assert.equal(practice.attempts.length, 3);
+      assert.ok(practice.attempts.every(row => row.assessment === "ai" && row.ai.overall === 3));
 
       // Usage lives in a collapsed, owner-only settings section in Progress (signed in only).
       await byButton("Progress").click();
@@ -202,9 +193,9 @@ for (const theme of ["dark", "light"]) {
       await page.getByText("AI assessment history", { exact: true }).click();
       await page.getByText("AI scores by question", { exact: true }).click();
       assert.ok(await page.getByText("What is IoU? · latest 2.5 · best 2.5 · 1 attempt", { exact: true }).isVisible());
-      assert.equal(await byButton("Delete saved AI score").count(), 3);
+      assert.equal(await byButton("Delete saved AI score").count(), 6);
       await byButton("Delete saved AI score").first().click();
-      assert.equal(await byButton("Delete saved AI score").count(), 2);
+      assert.equal(await byButton("Delete saved AI score").count(), 5);
 
       // Live mode shows the external-service privacy notice; a paused coach shows one simple message.
       env.COACH_MODE = "live";

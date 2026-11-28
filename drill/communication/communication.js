@@ -32,6 +32,7 @@
   let draftKey = "";
   const drafts = new Map();
   const reviewText = new Map();
+  const coachDrafts = new Map();
 
   function announce(message) {
     status.textContent = message;
@@ -78,6 +79,7 @@
   function resetExercise(key) {
     window.DrillRecorder?.discard(draftKey);
     drafts.delete(draftKey);
+    coachDrafts.delete(draftKey);
     draftKey = key;
     draft = {};
     deadline = 0;
@@ -132,7 +134,9 @@
       exclude: question ? [question.id] : []
     });
     if (skipping && selected?.id === question?.id) {
-      announce("This is the only question for these filters. Change a filter or try Random practice.");
+      render();
+      announce("Question skipped. This is the only question for these filters. Change a filter or try Random practice.");
+      panel.querySelector("#comm-prompt")?.focus();
       return;
     }
     question = selected;
@@ -166,9 +170,9 @@
         <span class="comm-kicker">${escape(current.topicLabel)} · ${escape(label)}</span>
         <h3 class="q" id="comm-prompt" tabindex="-1">${escape(current.prompt)}</h3>
         ${step?.review ? `<p>Review your earlier attempt, then give a revised answer.</p>
-          <p>Earlier self-assessment · ${formatScore(model.score(prior))}</p>
-          ${prior.answer ? `<p class="comm-answer">${escape(prior.answer)}</p>` : ""}
-          ${prior.notes ? `<p class="comm-answer">Earlier notes · ${escape(prior.notes)}</p>` : ""}` : ""}
+          <p>Earlier assessment · ${formatScore(model.score(prior))}</p>
+          ${prior?.answer ? `<p class="comm-answer">${escape(prior.answer)}</p>` : ""}
+          ${prior?.notes ? `<p class="comm-answer">Earlier notes · ${escape(prior.notes)}</p>` : ""}` : ""}
         <form id="comm-assessment">
           <div class="timer">
             <div><label for="comm-time">Countdown</label><select name="duration" id="comm-time">${[...durations].map(([value, text]) =>
@@ -179,10 +183,10 @@
           </div>
           <button class="comm-disclosure" type="button" aria-controls="comm-hint" aria-expanded="${Boolean(draft.hint)}">Answer structure hint</button>
           <p id="comm-hint" class="comm-reveal" ${draft.hint ? "" : "hidden"}>${escape(structure)}</p>
-          <div class="comm-block" id="comm-recorder"></div>
           <label class="comm-block">Written answer (optional)
             <textarea name="answer" rows="4" placeholder="Answer aloud or write here.">${escape(draft.answer ?? "")}</textarea>
           </label>
+          <div class="comm-block" id="comm-recorder"></div>
           <div class="comm-block" id="comm-coach"></div>
           <button class="comm-disclosure" type="button" aria-controls="comm-example" aria-expanded="${Boolean(draft.example)}">${draft.example ? "Hide example answer" : "Show example answer"}</button>
           <div id="comm-example" class="comm-reveal" ${draft.example ? "" : "hidden"}>
@@ -190,20 +194,20 @@
             ${current.source ? `<details><summary>Related DRILL flashcard</summary><p><strong>${escape(current.source.q)}</strong></p>
               <p>${escape(current.source.a)}</p></details>` : ""}
           </div>
-          <fieldset>
-            <legend>Self-assessment</legend>
+          <details class="comm-block" id="comm-self"><summary>Optional self-assessment</summary>
+            <p>Choose a rating for each skill to save a self-assessment.</p>
             <details><summary>Scoring scale</summary><ol>${scale.map(text => `<li>${escape(text)}</li>`).join("")}</ol></details>
             <div class="comm-grid">${ratingFields.map(([id, text]) => `<div>
               <label for="comm-rate-${id}">${escape(text)}</label>
-              <select id="comm-rate-${id}" name="${id}" required>${option("", "Select rating", draft[id] ?? "")}
+              <select id="comm-rate-${id}" name="${id}">${option("", "Select rating", draft[id] ?? "")}
               ${scale.map((_, index) => option(String(index + 1), index + 1, draft[id])).join("")}</select></div>`).join("")}</div>
-            <label class="comm-block">Personal notes and knowledge gaps (optional)
-              <textarea name="notes" rows="3">${escape(draft.notes ?? "")}</textarea>
-            </label>
-          </fieldset>
+          </details>
+          <label class="comm-block">Personal notes (optional)
+            <textarea name="notes" rows="2">${escape(draft.notes ?? "")}</textarea>
+          </label>
           <div class="acts">
             <button class="solid" type="submit">${step?.review ? "Save and finish session" : "Save and next question"}</button>
-            ${session ? "" : '<button type="button" id="comm-next">Skip to next question</button>'}
+            <button type="button" id="comm-next">${step?.review ? "Skip and finish session" : "Skip to next question"}</button>
           </div>
         </form>
       </article>`;
@@ -222,7 +226,15 @@
     window.DrillRecorder?.mount(form.querySelector("#comm-recorder"), key, {
       onChange: () => window.DrillCoach?.recordingChanged()
     });
+    const self = form.querySelector("#comm-self");
+    const coachDraft = coachDrafts.get(key) ?? {};
+    coachDrafts.set(key, coachDraft);
     window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, {
+      draft: coachDraft,
+      access: enabled => { self.hidden = enabled; },
+      processing: busy => {
+        for (const control of form.querySelectorAll('[type="submit"], #comm-next')) control.disabled = busy;
+      },
       session: session?.id, recording: () => window.DrillRecorder?.get(key) ?? null
     });
     const timer = form.elements.duration;
@@ -237,7 +249,7 @@
       stop.disabled = !deadline;
       if (deadline && seconds === 0) {
         clearInterval(interval);
-        announce("Time is up. You can finish your answer and self-assessment.");
+        announce("Time is up. You can finish your answer.");
       }
     }
 
@@ -263,37 +275,40 @@
     drawTimer();
     if (deadline && model.remaining(deadline)) interval = setInterval(drawTimer, 250);
 
-    form.onsubmit = event => {
-      event.preventDefault();
-      const spoken = Boolean(window.DrillRecorder?.recording() || window.DrillRecorder?.get(key));
-      const attempt = model.assessment(current, fields(form), new Date(), spoken ? "spoken" : "written");
-      if (!attempt) {
-        announce("Choose a self-assessment rating for each skill.");
-        return;
-      }
+    function finish(skip) {
+      const evaluated = coachDraft.assessed;
+      const spoken = evaluated ? evaluated.mode === "spoken" :
+        Boolean(window.DrillRecorder?.recording() || window.DrillRecorder?.get(key));
+      const values = skip ? {} : fields(form);
+      if (self.hidden) for (const skill of Object.keys(skills)) delete values[skill];
+      const attempt = model.assessment(current, values, new Date(), spoken && !skip ? "spoken" : "written", {
+        optional: true, skip, ai: evaluated && { id: evaluated.id, overall: evaluated.feedback.overall }
+      });
       if (!persist(data => model.recordAttempt(data, attempt, session))) return;
-      if (session && !step.review) reviewText.set(`${session.id}:${current.id}`, { answer: attempt.answer, notes: attempt.notes });
+      if (session && !step.review && !skip) {
+        reviewText.set(`${session.id}:${current.id}`, { answer: evaluated?.answer ?? attempt.answer, notes: attempt.notes });
+      }
       resetExercise("");
-      announce(step?.review ? "Session complete. Your self-assessments have been saved." : "Self-assessment saved.");
+      announce(step?.review ? "Session complete." : skip ? "Question skipped." : "Practice saved.");
       if (session) {
         if (step.review) reviewText.clear();
         render();
         (panel.querySelector("#comm-prompt") ?? panel.querySelector("[data-heading]")).focus();
-      } else nextQuestion(true);
+      } else nextQuestion(true, skip);
+    }
+    form.onsubmit = event => {
+      event.preventDefault();
+      finish(false);
     };
-    const skip = mount.querySelector("#comm-next");
-    if (skip) skip.onclick = () => {
-      announce("");
-      nextQuestion(true, true);
-    };
+    mount.querySelector("#comm-next").onclick = () => finish(true);
   }
 
   function renderDaily() {
     const session = state.active;
     if (session) {
       const step = session.steps[session.index];
-      const prior = step.review ? state.attempts.filter(attempt => attempt.sessionId === session.id)
-        .sort((a, b) => model.score(a) - model.score(b))[0] : undefined;
+      const prior = step.review ? state.attempts.filter(attempt => attempt.sessionId === session.id && model.kind(attempt) !== "skipped")
+        .sort((a, b) => (model.score(a) ?? Infinity) - (model.score(b) ?? Infinity))[0] : undefined;
       panel.innerHTML = `
         <h2 tabindex="-1" data-heading>${session.mode === "daily" ? "Daily practice" : "Quick practice"}</h2>
         <div class="comm-session">
@@ -307,7 +322,7 @@
           <button type="button" id="comm-end">End session</button>
         </details>`;
       const text = prior && reviewText.get(`${session.id}:${prior.questionId}`);
-      renderExercise(bank.find(q => q.id === (prior?.questionId ?? step.questionId)), session, prior && { ...prior, ...text });
+      renderExercise(bank.find(q => q.id === (prior?.questionId ?? step.questionId ?? session.steps[0].questionId)), session, prior && { ...prior, ...text });
       panel.querySelector("#comm-end").onclick = () => {
         if (!persist(data => {
           if (data.active?.id !== session.id || data.active.index !== session.index) throw new Error("Session changed");
@@ -445,14 +460,17 @@
   }
 
   function renderProgress() {
-    const stats = model.progress(state);
+    let historicalAI = [];
+    try { historicalAI = window.DrillCoachProgress?.load(localStorage).filter(row => !row.mock) ?? []; }
+    catch { /* An unreadable score history should not hide practice progress. */ }
+    const stats = model.progress(state, new Date(), historicalAI);
     const stat = (value, label) => `<div class="stat"><b>${escape(value)}</b><span>${escape(label)}</span></div>`;
-    if (!stats.attempts) {
+    if (!stats.attempts && !stats.counts.ai) {
       panel.innerHTML = `
         <h2 tabindex="-1" data-heading>Progress</h2>
         <div class="comm-card">
           <h3>No practice attempts yet</h3>
-          <p>Save your first self-assessment to see skill scores and practice activity here.</p>
+          <p>Save your first answer or spoken practice to see activity here.</p>
           ${stat(`${stats.lessons} / ${lessons.length}`, "Lessons completed")}
           <div class="acts"><button id="comm-first-practice" type="button" class="solid">Start practice</button></div>
         </div>`;
@@ -462,7 +480,9 @@
     panel.innerHTML = `
       <h2 tabindex="-1" data-heading>Progress</h2>
       <div class="comm-grid comm-stats">
-        ${stat(stats.completed, "Exercises completed")}${stat(stats.attempts, "Attempts saved")}
+        ${stat(stats.completed, "Questions practiced")}
+        ${stat(stats.counts.ai, "AI-assessed questions")}${stat(stats.counts.self, "Self-assessed questions")}
+        ${stat(stats.counts.unassessed, "Practiced without assessment")}${stat(stats.counts.skipped, "Skipped questions")}
         ${stats.spoken ? stat(formatScore(stats.writtenAverage), "Average self-assessment · written") +
           stat(formatScore(stats.spokenAverage), "Average self-assessment · spoken") +
           stat(stats.spoken, "Spoken attempts") : stat(formatScore(stats.average), "Average self-assessment")}

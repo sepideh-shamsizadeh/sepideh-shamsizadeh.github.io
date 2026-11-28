@@ -116,14 +116,19 @@ export function feedbackFor(envelope, evaluation) {
   }
 }
 
-export async function requestOpenAI(evaluation, key, fetcher = fetch) {
+export async function requestOpenAI(evaluation, key, fetcher = fetch, requestId, signal = AbortSignal.timeout(25_000)) {
   const response = await fetcher("https://api.openai.com/v1/responses", {
-    method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+    method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json", "X-Client-Request-Id": requestId },
     // Workers reject redirect "error"; with "manual" a redirect is a non-2xx response and fails closed.
-    body: evaluation.body, signal: AbortSignal.timeout(25_000), redirect: "manual"
+    body: evaluation.body, signal, redirect: "manual"
   });
-  const envelope = await response.json().catch(() => null);
-  return { status: response.status, envelope };
+  const envelope = await response.json().catch(() => {
+    signal.throwIfAborted();
+    return null;
+  });
+  const providerId = response.headers.get("x-request-id");
+  return { status: response.status, envelope,
+    providerId: /^req_[a-zA-Z0-9]{8,80}$/.test(providerId ?? "") ? providerId : undefined };
 }
 
 export function mockOpenAI(evaluation) {

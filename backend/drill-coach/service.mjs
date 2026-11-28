@@ -189,24 +189,41 @@ export async function handle(request, env, ledger, options = {}) {
   const fingerprint = await keyed(JSON.stringify([fields.questionId, prompt, answer, answerMode]), secret);
   const requestId = fields.requestId.toLowerCase();
   const decision = ledger.reserve(requestId, fingerprint, (options.now ?? Date.now)(), evaluation.reserveCost);
-  if (decision !== "accepted") return error(decision === "duplicate" ? 409 : decision === "disabled" ? 503 : 429, decision);
+  if (decision !== "accepted") {
+    const conflict = ["duplicate", "in_progress", "uncertain", "new_attempt"].includes(decision);
+    return error(conflict ? 409 : decision === "disabled" ? 503 : 429, decision);
+  }
 
   let result;
   try {
-    result = mode === "mock" ? (options.mock ?? mockOpenAI)(evaluation) :
-      await requestOpenAI(evaluation, env.OPENAI_API_KEY, options.fetcher);
-  } catch {
+    result = mode === "mock" ? await (options.mock ?? mockOpenAI)(evaluation) :
+      await requestOpenAI(evaluation, env.OPENAI_API_KEY, options.fetcher, requestId, options.providerSignal);
+  } catch (failure) {
     ledger.settle(requestId, null);
-    return error(504, "timeout");
+    const timeout = ["TimeoutError", "AbortError"].includes(failure?.name);
+    return respond(timeout ? 504 : 502, { error: timeout ? "timeout" : "provider_unconfirmed", requestId });
   }
   const usage = usageFor(result.envelope, evaluation);
-  ledger.settle(requestId, usage, (options.now ?? Date.now)());
+  const ok = result.status >= 200 && result.status < 300;
+  const feedback = ok ? feedbackFor(result.envelope, evaluation) : null;
+  const providerError = result.envelope?.error?.code;
+  // An explicit upstream rejection did not run inference. Gateway failures and missing
+  // usage can hide a billable request, so keep their full reservation and quarantine the fingerprint.
+  const rejected = [400, 401, 403, 404, 422, 429].includes(result.status) &&
+    typeof result.envelope?.error?.type === "string";
+  const accounting = usage ?? (rejected ? { cost: 0, input: 0, output: 0 } : null);
+  ledger.settle(requestId, accounting, (options.now ?? Date.now)(), !feedback || !usage);
   if (usage?.exceeded) return error(503, "disabled");
-  if (result.envelope?.error?.code === "insufficient_quota") return error(503, "credits");
-  if (result.status === 429) return error(503, "provider_limit");
-  if (result.status < 200 || result.status >= 300) return error(502, "provider");
-  const feedback = feedbackFor(result.envelope, evaluation);
-  if (!feedback || !usage) return error(502, "feedback");
+  if (!feedback || !usage) {
+    const truncated = result.envelope?.status === "incomplete" &&
+      result.envelope.incomplete_details?.reason === "max_output_tokens";
+    const code = providerError === "insufficient_quota" ? "credits" : result.status === 429 ? "provider_limit" :
+      !accounting ? "provider_unconfirmed" : truncated ? "output_limit" : ok ? "feedback" : "provider";
+    return respond(["credits", "provider_limit"].includes(code) ? 503 : 502, {
+      error: code, requestId, providerStatus: result.status, providerId: result.providerId,
+      retryWithNewId: Boolean(accounting)
+    });
+  }
   return respond(200, {
     id: requestId, rubric: 1, mode: answerMode, model: evaluation.model, mock: mode === "mock", feedback,
     followUp: await sealFollowUp(fields.questionId, feedback.followUp, now, secret),

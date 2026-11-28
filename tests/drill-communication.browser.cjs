@@ -59,7 +59,9 @@ async function run(viewport, theme, check, { missing, delay } = {}) {
 }
 
 async function rate(page, value) {
-  for (const select of await page.locator("#comm-assessment fieldset select").all()) {
+  const self = page.locator("#comm-self");
+  if (!await self.evaluate(node => node.open)) await self.locator(":scope > summary").click();
+  for (const select of await self.locator("select").all()) {
     await select.selectOption(String(value));
   }
   await page.locator("#comm-assessment button[type=submit]").click();
@@ -149,7 +151,7 @@ test("versioned assets initialize; every filter, practice controls and saved pro
     assert.match(await page.locator("#communication-status").innerText(), /only question/);
     assert.match(await prompt(page), /bounding-box overlap/);
     for (const locator of [page.locator('label[for="comm-category"]'), category, page.locator("#comm-prompt"),
-      page.locator("#comm-assessment legend"), page.locator('[aria-controls="comm-example"]')]) await contrast(locator);
+      page.locator("#comm-self > summary"), page.locator('[aria-controls="comm-example"]')]) await contrast(locator);
     await contrast(category, { boundary: true });
     if (captures) await page.screenshot({ path: join(captures, "drill-v1.0.1-practice-dark.png"), fullPage: true });
 
@@ -176,16 +178,26 @@ test("versioned assets initialize; every filter, practice controls and saved pro
     assert.ok(await page.getByText("What is IoU?", { exact: true }).isVisible());
     await view(page, "Hide example answer");
     assert.equal(await page.locator("#comm-example").isVisible(), false);
+    assert.equal(await page.locator("#comm-self").evaluate(node => node.open), false);
+    await page.getByText("Optional self-assessment", { exact: true }).click();
     await page.getByText("Scoring scale", { exact: true }).click();
     assert.ok(await page.getByText(/Interview-ready/).isVisible());
     await page.getByLabel("Written answer (optional)").fill("My <answer>");
-    await page.getByLabel("Personal notes and knowledge gaps (optional)").fill("Practice the example");
+    await page.getByLabel("Personal notes (optional)").fill("Practice the example");
     await rate(page, 2);
     assert.equal(await page.locator("#comm-example").isVisible(), false);
     await category.selectOption("");
     const beforeSkip = await prompt(page);
     await view(page, "Skip to next question");
     assert.notEqual(await prompt(page), beforeSkip);
+
+    await page.getByLabel("Written answer (optional)").fill("Private unrated response");
+    await view(page, "Save and next question");
+    const attempts = (await saved(page)).attempts;
+    assert.ok(attempts.some(row => row.assessment === "skipped"));
+    assert.ok(attempts.some(row => row.ratings.accuracy === 2));
+    assert.deepEqual(attempts.at(-1).ratings, {});
+    assert.equal(attempts.at(-1).assessment, "unassessed");
 
     await page.reload();
     await view(page, "Progress");
