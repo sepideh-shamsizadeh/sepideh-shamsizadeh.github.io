@@ -652,3 +652,27 @@ test("an upstream timeout keeps its reservation and a concurrent replay does not
   assert.equal(ledger.totals(time).remainingToday, 9);
   assert.ok(ledger.totals(time).reservedMonthlyMicros > 0);
 });
+
+test("temporary live evaluation diagnostics record only correlation and accounting and expire", async () => {
+  const { send, login, advance } = setup();
+  const env = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "private-provider-key",
+    EVALUATION_DIAGNOSTICS_UNTIL: new Date(time + 2500).toISOString() };
+  const { session } = await login(env);
+  const events = [];
+  const options = {
+    diagnosticSink: event => events.push(JSON.parse(event)),
+    fetcher: async () => Response.json({
+      error: { message: "private learner answer inside upstream error", type: "invalid_request_error" }
+    }, { status: 400, headers: { "x-request-id": "req_123456789" } })
+  };
+  const body = answer("private learner answer");
+  assert.equal((await send("/v1/evaluations", "POST", { body, session, env, options })).status, 502);
+  assert.deepEqual(events, [{
+    event: "drill_evaluation", requestId: body.requestId, mode: "written", outcome: "provider", status: 502,
+    elapsedMs: 0, providerStatus: 400, providerId: "req_123456789", accountedMicros: 0
+  }]);
+  advance(3000);
+  const retry = { ...body, requestId: crypto.randomUUID() };
+  assert.equal((await send("/v1/evaluations", "POST", { body: retry, session, env, options })).status, 502);
+  assert.equal(events.length, 1);
+});

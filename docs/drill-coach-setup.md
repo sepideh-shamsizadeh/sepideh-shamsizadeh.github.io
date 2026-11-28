@@ -51,7 +51,7 @@ openssl rand -base64 48 | tr -d '\n' | npx wrangler@4.168.0 secret put DEDUPE_SE
 
 `DEDUPE_SECRET` signs follow-up prompts and keys the duplicate-request fingerprints. Use at least 32 random characters.
 
-`wrangler.toml` keeps Workers Logs disabled (`[observability] enabled = false`), so no request data reaches Cloudflare logs. Leave it that way.
+`wrangler.toml` keeps Workers Logs disabled (`[observability] enabled = false`), so no request data reaches Cloudflare logs. Keep this default for normal operation.
 
 ## 3. Connect the website
 
@@ -215,3 +215,5 @@ A provider rejection with no inference usage retains its daily attempt slot and 
 The owner-only evaluation response can show a random request reference, a validated provider request ID and a numeric provider status for troubleshooting. The Worker sends the random reference as the provider client request ID. Keep Workers Logs disabled and share only those references and the approximate incident time when investigating an error. The attempt ledger stores the keyed fingerprint and accounting metadata.
 
 The protected site preview uses the existing preview configuration with the Worker URL blank. Browser tests use mocked Google sign-in, speech recognition and evaluation. Production Google sign-in prefers FedCM where supported, and the DRILL communication page permits popup communication through a route-specific opener policy.
+
+For a controlled production acceptance window, set `EVALUATION_DIAGNOSTICS_UNTIL` to a UTC expiry and enable Workers Logs with invocation logs and traces disabled in the temporary deployment configuration. The `drill_evaluation` event contains the random request ID, outcome, mode, validated provider request ID, status, latency, and numeric accounting. Never enable invocation logs or trace capture for this check. Deploy again with the normal logging configuration after acceptance. Event emission also stops automatically at the expiry.
