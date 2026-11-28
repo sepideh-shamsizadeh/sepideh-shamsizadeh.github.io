@@ -126,3 +126,25 @@ test("malformed or future storage is preserved on a failed write", () => {
     assert.equal(storage.getItem(model.key), raw);
   }
 });
+
+test("optional assessment preserves historical scores and excludes unassessed and skipped questions from score averages", () => {
+  const date = new Date(2026, 10, 28);
+  const question = { id: "history", category: "concept" };
+  const ratings = Object.fromEntries(Object.keys(model.skills).map(skill => [skill, 4]));
+  const state = model.empty();
+  const save = (id, fields, options) => model.recordAttempt(state,
+    model.assessment({ ...question, id }, fields, date, "written", options));
+  save("history", ratings);
+  save("no-rating", { answer: "Private answer", notes: "Private notes" }, { optional: true });
+  save("skipped", {}, { optional: true, skip: true });
+  save("ai", {}, { optional: true, ai: { id: "ai-score", overall: 3.5 } });
+
+  assert.deepEqual(state.attempts.map(model.score), [4, null, null, 3.5]);
+  const stats = model.progress(state, date, [{ questionId: "earlier-ai" }, { questionId: "ai" }]);
+  assert.deepEqual(stats.counts, { ai: 2, self: 1, unassessed: 1, skipped: 1 });
+  assert.equal(stats.average, 4);
+  assert.equal(stats.completed, 3);
+  assert.equal(stats.weekly.at(-1).average, 4);
+  assert.equal(stats.weekly.at(-1).attempts, 3);
+  assert.doesNotMatch(JSON.stringify(state), /Private/);
+});

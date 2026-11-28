@@ -96,7 +96,7 @@ export class Ledger {
       COALESCE(SUM(input),0) AS input, COALESCE(SUM(output),0) AS output
       FROM evaluations WHERE day = ?`, day)[0];
     const monthRow = this.query(`SELECT COALESCE(SUM(cost),0) AS cost,
-      COALESCE(SUM(CASE WHEN state != 'settled' THEN cost ELSE 0 END),0) AS reserved
+      COALESCE(SUM(CASE WHEN state IN ('pending','held') THEN cost ELSE 0 END),0) AS reserved
       FROM evaluations WHERE month = ?`, month)[0];
     const adjusted = this.query("SELECT COALESCE(SUM(cost),0) AS cost FROM adjustments WHERE month = ?", month)[0].cost;
     const monthly = monthRow.cost + adjusted;
@@ -149,8 +149,16 @@ export class Ledger {
       // Retain the active and preceding accounting periods; no raw request data is retained.
       this.query("DELETE FROM evaluations WHERE month < ? AND created < ?", month, now - MONTH_MS);
       this.query("DELETE FROM adjustments WHERE month < ? AND created < ?", month, now - MONTH_MS);
-      if (this.query("SELECT 1 FROM evaluations WHERE id = ? OR (fingerprint = ? AND created > ?) LIMIT 1",
-        id, fingerprint, now - DUPLICATE_MS).length) return "duplicate";
+      const same = this.query("SELECT fingerprint, state, created FROM evaluations WHERE id = ?", id)[0];
+      if (same && same.fingerprint !== fingerprint) return "duplicate";
+      if (this.query("SELECT 1 FROM evaluations WHERE fingerprint = ? AND state = 'pending' LIMIT 1", fingerprint).length) {
+        return "in_progress";
+      }
+      if (this.query(`SELECT 1 FROM evaluations WHERE fingerprint = ? AND state = 'held'
+        AND created > ? LIMIT 1`, fingerprint, now - DUPLICATE_MS).length) return "uncertain";
+      if (same?.state === "failed" || same?.state === "held") return "new_attempt";
+      if (same || this.query(`SELECT 1 FROM evaluations WHERE fingerprint = ? AND state = 'settled'
+        AND created > ? LIMIT 1`, fingerprint, now - DUPLICATE_MS).length) return "duplicate";
       if (this.query("SELECT 1 FROM evaluations WHERE state = 'pending' OR (created > ? AND state != 'pending') LIMIT 1",
         now - 2_000).length) return "rate";
       const totals = this.totals(now);
@@ -162,14 +170,14 @@ export class Ledger {
     });
   }
 
-  settle(id, usage, now = Date.now()) {
+  settle(id, usage, now = Date.now(), failed = false) {
     if (!usage) {
       this.query("UPDATE evaluations SET state = 'held' WHERE id = ? AND state = 'pending'", id);
       return;
     }
     this.transaction(() => {
-      this.query(`UPDATE evaluations SET state='settled', cost=?, input=?, output=?
-        WHERE id=? AND state IN ('pending','held')`, usage.cost, usage.input, usage.output, id);
+      this.query(`UPDATE evaluations SET state=?, cost=?, input=?, output=?
+        WHERE id=? AND state IN ('pending','held')`, failed ? "failed" : "settled", usage.cost, usage.input, usage.output, id);
       if (usage.exceeded) this.query("INSERT OR IGNORE INTO controls VALUES (?, ?)", LATCH, now);
     });
   }

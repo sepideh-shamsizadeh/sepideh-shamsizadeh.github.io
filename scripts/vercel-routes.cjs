@@ -6,6 +6,11 @@ const routes = [];
 if (process.argv[2] === "preview") {
   routes.push({ src: "/.*", headers: { "X-Robots-Tag": "noindex, nofollow" }, continue: true });
 }
+routes.push({
+  src: "^/drill/communication(?:/index\\.html|/)?$",
+  headers: { "Cross-Origin-Opener-Policy": "same-origin-allow-popups" },
+  continue: true
+});
 for (const [path, destination] of Object.entries(aliases)) {
   const target = new URL(destination, "https://sepideh.io");
   if (target.protocol !== "https:") throw new Error("Invalid redirect target");

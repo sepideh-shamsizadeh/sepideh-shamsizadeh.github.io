@@ -224,7 +224,7 @@ test("provider failure holds budget, malformed output settles usage and unexpect
   const env = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "mock-only" };
   const { session } = await login(env);
   const timeout = await send("/v1/evaluations", "POST", { env, session, body: answer("timeout"),
-    options: { fetcher: async () => { throw new Error("test timeout"); } } });
+    options: { fetcher: async () => { throw new DOMException("test timeout", "TimeoutError"); } } });
   assert.equal(timeout.status, 504);
   assert.ok(ledger.totals(time).reservedMonthlyMicros > 0);
   advance(3000);
@@ -558,4 +558,121 @@ test("spoken scores are marked, written rows keep the V1.1 shape, and self-asses
   assert.equal(stats.spoken, 1);
   assert.equal(stats.writtenAverage, 4);
   assert.ok(stats.spokenAverage < 4);
+});
+
+
+test("a billed spoken 502 can be retried with a fresh ID while the failed ID never dispatches twice", async () => {
+  const { send, login, advance, ledger, db } = setup();
+  const { session } = await login();
+  const body = { ...answer("A spoken answer to retry"), mode: "spoken" };
+  let calls = 0;
+  const options = { mock: evaluation => {
+    calls++;
+    return calls === 1 ? { status: 200, envelope: {
+      status: "incomplete", incomplete_details: { reason: "max_output_tokens" },
+      usage: { input_tokens: 1000, output_tokens: 1500 }
+    } } : mockOpenAI(evaluation);
+  } };
+  const submit = value => send("/v1/evaluations", "POST", { session, body: value, options });
+  const failure = await submit(body);
+  assert.equal(failure.status, 502);
+  assert.deepEqual(await failure.json(), {
+    error: "output_limit", requestId: body.requestId, providerStatus: 200, retryWithNewId: true
+  });
+  assert.equal(ledger.totals(time).estimatedMonthlyMicros, 7500);
+  assert.equal(ledger.totals(time).reservedMonthlyMicros, 0);
+  advance(3000);
+  const old = await submit(body);
+  assert.equal(old.status, 409);
+  assert.equal((await old.json()).error, "new_attempt");
+  const retried = await submit({ ...body, requestId: crypto.randomUUID() });
+  assert.equal(retried.status, 200);
+  assert.equal((await retried.json()).mode, "spoken");
+  assert.equal(calls, 2);
+  assert.equal(ledger.totals(time).estimatedMonthlyMicros, 11100);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM evaluations").get().count, 2);
+});
+
+test("explicit provider rejection releases budget but still counts against the daily limit", async () => {
+  const { send, login, advance, ledger } = setup();
+  const env = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "mock-only" };
+  const { session } = await login(env);
+  const body = answer("Retry after an explicit rejection");
+  const submit = (value, fetcher) => send("/v1/evaluations", "POST", { session, env, body: value, options: { fetcher } });
+  const response = await submit(body, async (_url, request) => {
+    assert.equal(request.headers["X-Client-Request-Id"], body.requestId);
+    return Response.json({ error: { type: "invalid_request_error", message: body.answer } },
+      { status: 400, headers: { "x-request-id": "req_123456789" } });
+  });
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { error: "provider", requestId: body.requestId, providerStatus: 400,
+    providerId: "req_123456789", retryWithNewId: true });
+  assert.equal(ledger.totals(time).remainingMonthlyMicros, MONTHLY_CAP);
+  assert.equal(ledger.totals(time).remainingToday, 9);
+  advance(3000);
+  const success = mockOpenAI({ model: DEFAULT_MODEL, inapplicable: ["reasoning"] });
+  assert.equal((await submit({ ...body, requestId: crypto.randomUUID() },
+    async () => Response.json(success.envelope))).status, 200);
+});
+
+test("a stale in-flight reservation keeps its cost and expires its fingerprint quarantine", () => {
+  const { ledger, db } = setup();
+  assert.equal(ledger.reserve("stale", "fingerprint", time, 10_000), "accepted");
+  assert.equal(ledger.reserve("other", "fingerprint", time + 30_000, 10_000), "in_progress");
+  assert.equal(ledger.reserve("other", "fingerprint", time + 120_000, 10_000), "uncertain");
+  assert.equal(db.prepare("SELECT state FROM evaluations").get().state, "held");
+  assert.equal(ledger.reserve("stale", "fingerprint", time + 900_000, 10_000), "new_attempt");
+  assert.equal(ledger.reserve("other", "fingerprint", time + 900_000, 10_000), "accepted");
+  assert.equal(ledger.totals(time).reservedMonthlyMicros, 20_000);
+  ledger.settle("stale", { cost: 1000, input: 1, output: 1 });
+  assert.equal(ledger.totals(time).estimatedMonthlyMicros, 11_000);
+});
+
+test("an upstream timeout keeps its reservation and a concurrent replay does not reach the provider", async () => {
+  const { send, login, ledger } = setup();
+  const env = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "mock-only" };
+  const { session } = await login(env);
+  const body = answer("An answer whose request may still be billed");
+  const deadline = new AbortController();
+  const dispatched = Promise.withResolvers();
+  let calls = 0;
+  const options = { providerSignal: deadline.signal, fetcher: async (_url, { signal }) => {
+    calls++;
+    dispatched.resolve();
+    return new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+  } };
+  const submit = value => send("/v1/evaluations", "POST", { env, session, body: value, options });
+  const original = submit(body);
+  await dispatched.promise;
+  assert.equal((await (await submit({ ...body, requestId: crypto.randomUUID() })).json()).error, "in_progress");
+  deadline.abort(new DOMException("Timed out", "TimeoutError"));
+  assert.equal((await original).status, 504);
+  assert.equal((await (await submit(body)).json()).error, "uncertain");
+  assert.equal(calls, 1);
+  assert.equal(ledger.totals(time).remainingToday, 9);
+  assert.ok(ledger.totals(time).reservedMonthlyMicros > 0);
+});
+
+test("temporary live evaluation diagnostics record only correlation and accounting and expire", async () => {
+  const { send, login, advance } = setup();
+  const env = { ...base, COACH_MODE: "live", OPENAI_API_KEY: "private-provider-key",
+    EVALUATION_DIAGNOSTICS_UNTIL: new Date(time + 2500).toISOString() };
+  const { session } = await login(env);
+  const events = [];
+  const options = {
+    diagnosticSink: event => events.push(JSON.parse(event)),
+    fetcher: async () => Response.json({
+      error: { message: "private learner answer inside upstream error", type: "invalid_request_error" }
+    }, { status: 400, headers: { "x-request-id": "req_123456789" } })
+  };
+  const body = answer("private learner answer");
+  assert.equal((await send("/v1/evaluations", "POST", { body, session, env, options })).status, 502);
+  assert.deepEqual(events, [{
+    event: "drill_evaluation", requestId: body.requestId, mode: "written", outcome: "provider", status: 502,
+    elapsedMs: 0, providerStatus: 400, providerId: "req_123456789", accountedMicros: 0
+  }]);
+  advance(3000);
+  const retry = { ...body, requestId: crypto.randomUUID() };
+  assert.equal((await send("/v1/evaluations", "POST", { body: retry, session, env, options })).status, 502);
+  assert.equal(events.length, 1);
 });

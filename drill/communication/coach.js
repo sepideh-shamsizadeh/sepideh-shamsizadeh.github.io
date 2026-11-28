@@ -15,13 +15,22 @@
     nonce: "This sign-in attempt timed out or was already used. Sign in again.",
     verifier: "Google's sign-in service could not be reached. Try again in a moment.",
     owner: "AI feedback is limited to the site owner's account.",
-    disabled: unavailable, daily: unavailable, budget: unavailable, credits: unavailable, provider_limit: unavailable,
+    disabled: unavailable,
+    daily: "Today's 10-evaluation limit has been reached. Try again tomorrow.",
+    budget: "The monthly evaluation budget is full. You can save and continue.",
+    credits: "The evaluation provider reported insufficient credits. You can save and continue.",
+    provider_limit: "The evaluation provider is rate limited. Try again shortly.",
     answer: "Write an answer of up to about 2,400 characters to evaluate.",
     duplicate: "This answer was evaluated recently. Revise it before trying again.",
-    rate: "An evaluation just finished. Try again in a moment.",
-    provider: "The evaluation could not be completed. Your answer is still here.",
-    timeout: "The evaluation took too long. Your answer is still here.",
-    feedback: "The feedback was incomplete. Your answer is still here.",
+    rate: "An evaluation is running or just finished. Try again shortly.",
+    in_progress: "This answer is already being evaluated. Wait before retrying.",
+    uncertain: "The earlier request may have used AI credit. Wait up to 15 minutes before checking again.",
+    new_attempt: "The previous request did not return a usable result. Choose Evaluate again to start a new request.",
+    provider: "The provider rejected the evaluation. Your answer is still here. Try again shortly.",
+    provider_unconfirmed: "The provider did not confirm the result. Your answer is still here. Wait up to 15 minutes before checking again.",
+    output_limit: "Feedback was cut short. Try again, or shorten the answer. The previous request may count toward usage.",
+    timeout: "The evaluation timed out. Your answer is still here. Wait up to 15 minutes before checking again.",
+    feedback: "The feedback was incomplete. Your answer is still here. Choose Evaluate to try again.",
     follow_up: "This follow-up expired. Continue with the original question.",
     transcript: "Shorten the transcript to about 6,000 characters to evaluate it.",
     audio: "This recording could not be read. Record again in this browser.",
@@ -93,7 +102,11 @@
       if (value?.error === "session" && auth?.session === token) auth = null;
       const detail = value?.error === "google_token" ? tokenReasons[value.reason] : undefined;
       const message = (speech && transcriptionErrors[value?.error]) || errors[value?.error] || (speech ? speechUnavailable : unavailable);
-      throw new Error((detail ? detail + " " : "") + message);
+      const reference = path.endsWith("/evaluations") && value?.requestId ?
+        ` Reference: ${value.providerId ?? value.requestId}.` : "";
+      throw Object.assign(new Error((detail ? detail + " " : "") + message + reference), {
+        retryWithNewId: value?.retryWithNewId === true || value?.error === "new_attempt"
+      });
     }
     return value;
   }
@@ -177,17 +190,23 @@
     const box = details(container, "AI Communication Coach", "comm-coach");
     const summary = box.querySelector("summary");
     const note = element("p", undefined, box, "comm-coach-note");
+    const speechControls = element("div", undefined, box, "comm-coach-controls");
+    const transcript = element("div", undefined, box);
     const controls = element("div", undefined, box, "comm-coach-controls");
     const status = element("p", undefined, box, "comm-coach-status");
     status.setAttribute("role", "status");
     const earlier = element("p", undefined, box, "comm-coach-note");
     const output = element("div", undefined, box);
-    let result, initial = memoryKey ? memory.get(memoryKey) ?? null : null, followUp, config, busy = false;
+    const draft = context.draft ?? {};
+    let result = draft.result, initial = draft.initial ?? (memoryKey ? memory.get(memoryKey) ?? null : null);
+    if (initial) draft.initial = initial;
+    let followUp = draft.followUp, config, busy = false;
     let input = answerInput;
-    // The transcript of the current recording. It lives only in this panel and is discarded with it.
+    // Recordings, transcripts, full answers and feedback live in the current exercise draft.
     let spoken = null;
     const take = () => context.recording?.() ?? null;
     function clearSpoken() {
+      delete draft.spoken;
       spoken = null;
       box.querySelector(".comm-coach-spoken")?.remove();
     }
@@ -200,7 +219,9 @@
     if (initial) earlier.textContent = `Earlier score in this session: ${score(initial.feedback.overall)} / 5. Evaluate your revision to compare.`;
 
     dispose = () => {
-      clearSpoken();
+      draft.notify = null;
+      if (spoken && draft.spoken) draft.spoken.text = spoken.input.value;
+      spoken = null;
       result = initial = followUp = null;
       input = null;
       output.replaceChildren();
@@ -213,19 +234,28 @@
 
     function showControls() {
       controls.replaceChildren();
+      speechControls.replaceChildren();
+      context.access?.(Boolean(signedIn() && config?.enabled !== false));
+      const processing = busy || draft.evaluating;
+      context.processing?.(Boolean(draft.evaluating));
       if (!config?.enabled) return;
       if (!signedIn()) {
         button(controls, "Sign in to use AI feedback", signIn, "comm-coach-link");
         return;
       }
-      const evaluate = button(controls, busy === "evaluate" ? "Evaluating…" : "Evaluate my answer", () => submit("written"), "solid");
-      evaluate.disabled = Boolean(busy);
+      const evaluate = button(controls, draft.evaluating ? "Evaluating…" : "Evaluate my answer", () => submit("written"), "solid");
+      evaluate.disabled = Boolean(processing);
       const recording = take();
       if (config.transcription && !followUp && recording && spoken?.recording !== recording) {
-        const transcribe = button(controls, busy === "transcribe" ? "Transcribing…" : "Transcribe recording", transcribeTake);
-        transcribe.disabled = Boolean(busy);
+        const transcribe = button(speechControls, busy === "transcribe" ? "Transcribing…" : "Transcribe recording", transcribeTake);
+        transcribe.disabled = Boolean(processing);
       }
-      button(controls, "Sign out", signOut, "comm-coach-link");
+      const signout = button(controls, "Sign out", signOut, "comm-coach-link");
+      signout.disabled = Boolean(processing);
+      if (spoken) {
+        spoken.evaluate = button(controls, "Evaluate spoken answer", () => submit("spoken"), "solid");
+        spoken.evaluate.disabled = Boolean(processing);
+      }
     }
 
     function showNote() {
@@ -253,7 +283,7 @@
         const { nonce } = await api("/v1/auth/challenge", { method: "POST", token: null });
         if (!active()) return;
         identity.initialize({
-          client_id: config.googleClientId, nonce, auto_select: false,
+          client_id: config.googleClientId, nonce, auto_select: false, use_fedcm_for_button: true,
           callback: async ({ credential }) => {
             if (!active()) return;
             try {
@@ -284,6 +314,13 @@
       memory.clear();
       earlier.hidden = true;
       result = initial = followUp = null;
+      delete draft.result;
+      delete draft.initial;
+      delete draft.followUp;
+      delete draft.followUpAnswer;
+      delete draft.followUpPrompt;
+      delete draft.request;
+      delete draft.message;
       clearSpoken();
       input = answerInput;
       output.replaceChildren();
@@ -299,7 +336,7 @@
     }
 
     async function submit(mode) {
-      if (!active() || busy) return;
+      if (!active() || busy || draft.evaluating) return;
       const field = mode === "spoken" ? spoken?.input : input;
       if (!field) return;
       const answer = field.value.trim();
@@ -318,37 +355,48 @@
         showControls();
         return;
       }
-      busy = "evaluate";
+      if (draft.request?.answer !== answer || draft.request?.mode !== mode || draft.request?.followUp !== followUp) {
+        draft.request = { id: crypto.randomUUID(), answer, mode, followUp };
+      }
+      draft.evaluating = true;
       showStatus("Evaluating…");
       showControls();
-      if (spoken?.evaluate) spoken.evaluate.disabled = true;
       const session = auth.session;
       try {
         const evaluated = await api("/v1/evaluations", {
           method: "POST", token: session,
-          body: { questionId: question.id, requestId: crypto.randomUUID(), answer,
+          body: { questionId: question.id, requestId: draft.request.id, answer,
             ...(mode === "spoken" ? { mode: "spoken" } : followUp ? { followUp } : {}) }
         });
-        if (!active() || auth?.session !== session) return;
+        if (auth?.session !== session) return;
         const entry = { ...evaluated, mode: evaluated.mode ?? mode, answer, at: new Date().toISOString() };
-        initial ??= entry;
-        result = entry;
-        if (memoryKey && !followUp && !memory.has(memoryKey)) memory.set(memoryKey, initial);
-        showStatus("");
-        renderFeedback();
+        draft.initial ??= initial ?? entry;
+        draft.result = draft.assessed = entry;
+        if (memoryKey && !followUp && !memory.has(memoryKey)) memory.set(memoryKey, draft.initial);
+        draft.message = save(false, entry) ? "Scores saved." : "Browser storage could not save the detailed scores.";
       } catch (error) {
-        if (!active() || (auth && auth.session !== session)) return;
-        showStatus(error.message);
+        if (error.retryWithNewId) delete draft.request;
+        draft.message = error.message;
       } finally {
-        busy = false;
-        if (active()) showControls();
-        if (spoken?.evaluate) spoken.evaluate.disabled = false;
+        draft.evaluating = false;
+        draft.notify?.();
       }
     }
 
+    draft.notify = () => {
+      if (!active()) return;
+      showStatus(draft.message ?? "");
+      showControls();
+      if (draft.result && result !== draft.result) {
+        result = draft.result;
+        initial = draft.initial;
+        renderFeedback();
+      }
+    };
+
     async function transcribeTake() {
       const recording = take();
-      if (!active() || busy || !recording) return;
+      if (!active() || busy || draft.evaluating || !recording) return;
       if (recording.blob.size > MAX_AUDIO_BYTES) {
         showStatus(errors.audio_size);
         return;
@@ -381,10 +429,10 @@
     }
 
     // Transcript and timing from the original recognition. Editing the transcript never changes the metrics.
-    function renderSpoken(recording, value) {
+    function renderSpoken(recording, value, focus = true) {
       clearSpoken();
       const area = element("section", undefined, undefined, "comm-coach-spoken");
-      output.before(area);
+      transcript.append(area);
       const heading = element("h4", "Transcript", area);
       heading.tabIndex = -1;
       element("p", "Correct any recognition errors, then evaluate. The speech metrics below come from the original recording.", area, "comm-coach-note");
@@ -392,6 +440,8 @@
       const field = element("textarea", undefined, label);
       field.rows = 6;
       field.value = value.text;
+      draft.spoken = { recording, ...value };
+      field.oninput = () => { draft.spoken.text = field.value; };
       const m = value.metrics;
       const rows = element("dl", undefined, area, "comm-scores comm-coach-metrics");
       for (const [term, text] of [
@@ -405,30 +455,29 @@
         element("dd", text, row);
       }
       element("p", "Recognition can miss hesitations, so filler counts are approximate. Pronunciation, accent, confidence and intonation are not assessed.", area, "comm-coach-note");
-      const acts = element("div", undefined, area, "acts");
-      const evaluate = button(acts, "Evaluate spoken answer", () => submit("spoken"), "solid");
-      spoken = { recording, input: field, evaluate };
-      heading.focus();
+      spoken = { recording, input: field };
+      if (focus) heading.focus();
     }
 
-    function save(review) {
-      if (!result) return;
+    function save(review, evaluated = result) {
+      if (!evaluated) return false;
       try {
         const entry = {
-          id: result.id, questionId: question.id, topic: question.topic, category: question.category,
-          at: result.at, model: result.model, rubric: result.rubric, overall: result.feedback.overall,
-          scores: Object.fromEntries(Object.keys(skills).map(key => [key, result.feedback.skills[key].score])),
-          reviewAt: review ? new Date(Date.now() + 86_400_000).toISOString() : null, mock: result.mock,
-          ...(result.mode === "spoken" ? { mode: "spoken" } : {})
+          id: evaluated.id, questionId: question.id, topic: question.topic, category: question.category,
+          at: evaluated.at, model: evaluated.model, rubric: evaluated.rubric, overall: evaluated.feedback.overall,
+          scores: Object.fromEntries(Object.keys(skills).map(key => [key, evaluated.feedback.skills[key].score])),
+          reviewAt: review ? new Date(Date.now() + 86_400_000).toISOString() :
+            progress.load(localStorage).find(item => item.id === evaluated.id)?.reviewAt ?? null, mock: evaluated.mock,
+          ...(evaluated.mode === "spoken" ? { mode: "spoken" } : {})
         };
         progress.save(localStorage, entry);
-        showStatus(review ? "Scores saved. This question is marked for review tomorrow." : "Scores saved.");
+        return true;
       } catch {
-        showStatus("Browser storage could not save the scores.");
+        return false;
       }
     }
 
-    function renderFeedback() {
+    function renderFeedback(focus = true) {
       output.replaceChildren();
       const data = result.feedback;
       const view = element("section", undefined, output, "comm-coach-result");
@@ -481,15 +530,15 @@
       element("h4", "Follow-up question", follow);
       element("p", data.followUp, follow);
       button(follow, "Answer the follow-up", () => {
-        followUp = result.followUp;
-        const prompt = result.feedback.followUp;
+        followUp = draft.followUp = result.followUp;
+        draft.followUpPrompt = result.feedback.followUp;
         result = initial = null;
+        delete draft.result;
+        delete draft.initial;
         clearSpoken();
         container.querySelector(".comm-coach-followup")?.remove();
-        const label = element("label", prompt, undefined, "comm-coach-followup");
-        input = element("textarea", undefined, label);
-        input.rows = 4;
-        output.before(label);
+        draft.followUpAnswer = "";
+        mountFollowUp();
         output.replaceChildren();
         showControls();
         input.focus();
@@ -501,14 +550,19 @@
         (record || input).focus();
       });
       if (initial.id !== result.id) button(actions, "Compare attempts", compare);
-      button(actions, "Save scores", () => save(review.checked), "solid");
-      const reviewLabel = element("label", undefined, actions, "comm-coach-check");
-      const review = element("input", undefined, reviewLabel);
-      review.type = "checkbox";
-      reviewLabel.append(" Review again tomorrow");
-      const next = container.closest("article")?.querySelector("#comm-next");
-      if (next) button(actions, "Next question", () => next.click());
-      heading.focus();
+      button(actions, "Review again tomorrow", () => {
+        showStatus(save(true) ? "Marked for review tomorrow." : "Browser storage could not mark this question for review.");
+      });
+      if (focus) heading.focus();
+    }
+
+    function mountFollowUp() {
+      const label = element("label", draft.followUpPrompt, undefined, "comm-coach-followup");
+      input = element("textarea", undefined, label);
+      input.rows = 4;
+      input.value = draft.followUpAnswer ?? "";
+      input.oninput = () => { draft.followUpAnswer = input.value; };
+      transcript.before(label);
     }
 
     function compare() {
@@ -538,6 +592,16 @@
       area.focus();
     }
 
+    if (followUp) mountFollowUp();
+    if (draft.spoken && draft.spoken.recording === take()) renderSpoken(take(), draft.spoken, false);
+    else if (draft.spoken) clearSpoken();
+    if (result) renderFeedback(false);
+    showStatus(draft.message ?? "");
+    if (signedIn()) {
+      context.access?.(true);
+      box.open = true;
+    }
+    if (draft.evaluating) context.processing?.(true);
     box.addEventListener("toggle", async () => {
       if (!box.open || config || busy) return;
       busy = true;

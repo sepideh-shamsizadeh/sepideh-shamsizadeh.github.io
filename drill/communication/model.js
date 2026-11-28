@@ -56,8 +56,10 @@
 
   const remaining = (end, now = Date.now()) => Math.max(0, Math.ceil((end - now) / 1000));
   const mean = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-  const score = attempt => mean(Object.values(attempt.ratings));
-  const isWeak = attempt => attempt && score(attempt) < 3;
+  const kind = attempt => attempt.assessment ?? "self";
+  const score = attempt => !attempt ? null : attempt.ai?.overall ?? mean(Object.values(attempt.ratings));
+  const ratedMean = attempts => mean(attempts.map(score).filter(value => value !== null));
+  const isWeak = attempt => score(attempt) !== null && score(attempt) < 3;
   const latestById = attempts => new Map(attempts.map(attempt => [attempt.questionId, attempt]));
 
   function selectQuestion(bank, attempts, options = {}) {
@@ -65,7 +67,7 @@
     const matches = bank.filter(q => (!topic || q.topic === topic) && (!category || category.includes(q.category)));
     let pool = matches.filter(q => !exclude.includes(q.id));
     if (!pool.length) pool = matches;
-    const latest = latestById(attempts);
+    const latest = latestById(attempts.filter(attempt => kind(attempt) !== "skipped"));
     if (prioritize) {
       const weak = pool.filter(q => isWeak(latest.get(q.id)));
       const fresh = pool.filter(q => !latest.has(q.id));
@@ -102,17 +104,24 @@
   }
 
   // `mode` is "spoken" when the attempt included a recording; written attempts keep the original shape.
-  function assessment(question, fields, date = new Date(), mode = "written") {
+  function assessment(question, fields, date = new Date(), mode = "written", options = {}) {
     const ratings = {};
     for (const skill of Object.keys(skills)) {
       if (skill === "reasoning" && !question.reasoning) continue;
       const value = Number(fields[skill]);
-      if (!Number.isInteger(value) || value < 1 || value > 5) return null;
+      if (!Number.isInteger(value) || value < 1 || value > 5) continue;
       ratings[skill] = value;
     }
+    const expected = Object.keys(skills).length - (question.reasoning ? 0 : 1);
+    const assessment = options.skip ? "skipped" : options.ai ? "ai" :
+      Object.keys(ratings).length === expected ? "self" : "unassessed";
+    if (!options.optional && assessment !== "self") return null;
     return {
       questionId: question.id, category: question.category, day: dayKey(date),
-      ratings, answer: String(fields.answer ?? "").trim(), notes: String(fields.notes ?? "").trim(),
+      ratings: assessment === "self" ? ratings : {},
+      ...(assessment === "self" ? {} : { assessment }),
+      ...(assessment === "ai" ? { ai: options.ai } : {}),
+      answer: String(fields.answer ?? "").trim(), notes: String(fields.notes ?? "").trim(),
       ...(mode === "spoken" ? { mode: "spoken" } : {})
     };
   }
@@ -122,7 +131,8 @@
       throw new Error("Session changed");
     }
     const { questionId, category, day, ratings } = attempt;
-    const metadata = { questionId, category, day, ratings, ...(attempt.mode === "spoken" ? { mode: "spoken" } : {}) };
+    const metadata = { questionId, category, day, ratings,
+      ...(attempt.assessment ? { assessment: attempt.assessment } : {}), ...(attempt.ai ? { ai: attempt.ai } : {}), ...(attempt.mode === "spoken" ? { mode: "spoken" } : {}) };
     state.attempts.push(session ? { ...metadata, sessionId: session.id } : metadata);
     if (!session) return;
     const active = state.active;
@@ -134,10 +144,19 @@
     state.active = null;
   }
 
-  function progress(state, date = new Date()) {
+  function progress(state, date = new Date(), historicalAI = []) {
     const today = dayKey(date);
-    const practiced = new Set(state.attempts.map(attempt => attempt.day));
-    const latest = [...latestById(state.attempts).values()];
+    const practice = state.attempts.filter(attempt => kind(attempt) !== "skipped");
+    const practiced = new Set(practice.map(attempt => attempt.day));
+    const self = practice.filter(attempt => kind(attempt) === "self");
+    const latest = [...latestById(self).values()];
+    const aiQuestions = new Set(historicalAI.map(entry => entry.questionId));
+    const counts = { ai: 0, self: 0, unassessed: 0, skipped: 0 };
+    for (const attempt of state.attempts) if (kind(attempt) === "ai") aiQuestions.add(attempt.questionId);
+    for (const attempt of latestById(state.attempts).values()) {
+      if (!aiQuestions.has(attempt.questionId)) counts[kind(attempt)] += 1;
+    }
+    counts.ai = aiQuestions.size;
     const weak = latest.filter(isWeak).sort((a, b) => score(a) - score(b));
     const byCategory = {};
     for (const attempt of latest) {
@@ -150,17 +169,17 @@
     while (practiced.has(daysBefore(date, offset++))) streak += 1;
     const weekly = Array.from({ length: 7 }, (_, index) => {
       const day = daysBefore(date, 6 - index);
-      const attempts = state.attempts.filter(attempt => attempt.day === day);
-      return { day, attempts: attempts.length, average: mean(attempts.map(score)),
+      const attempts = practice.filter(attempt => attempt.day === day);
+      return { day, attempts: attempts.length, average: ratedMean(attempts.filter(attempt => kind(attempt) === "self")),
         sessions: state.sessions.filter(session => session.day === day).length };
     });
-    const spoken = state.attempts.filter(attempt => attempt.mode === "spoken");
+    const spoken = practice.filter(attempt => attempt.mode === "spoken");
     return {
-      completed: latest.length, attempts: state.attempts.length, average: mean(state.attempts.map(score)),
-      spoken: spoken.length, spokenAverage: mean(spoken.map(score)),
-      writtenAverage: mean(state.attempts.filter(attempt => attempt.mode !== "spoken").map(score)),
+      completed: latestById(practice).size, attempts: state.attempts.length, counts, average: ratedMean(self),
+      spoken: spoken.length, spokenAverage: ratedMean(self.filter(attempt => attempt.mode === "spoken")),
+      writtenAverage: ratedMean(self.filter(attempt => attempt.mode !== "spoken")),
       bySkill: Object.fromEntries(Object.keys(skills).map(skill => [skill,
-        mean(state.attempts.map(attempt => attempt.ratings[skill]).filter(value => value !== undefined))])),
+        mean(self.map(attempt => attempt.ratings[skill]).filter(value => value !== undefined))])),
       weak, weakCategories, lessons: Object.keys(state.lessons).length, streak, weekly,
       daily: state.sessions.filter(session => session.mode === "daily").length,
       quick: state.sessions.filter(session => session.mode === "quick").length,
@@ -169,7 +188,7 @@
   }
 
   const model = { key, scale, skills, defaultMinutes, dailySteps, empty, validMinutes, load, update,
-    dayKey, remaining, score, selectQuestion, sessionPlan, assessment, recordAttempt, progress };
+    dayKey, remaining, score, kind, selectQuestion, sessionPlan, assessment, recordAttempt, progress };
   if (typeof document === "undefined" && typeof module === "object") module.exports = model;
   else root.DrillCommunicationModel = model;
 })(globalThis);

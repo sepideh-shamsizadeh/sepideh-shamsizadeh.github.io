@@ -158,3 +158,18 @@ test("spoken self-assessments and AI scores keep their mode through transfer, an
   assert.throws(() => transfer.parse(JSON.stringify({ format: "drill-progress", version: 1,
     aiCoach: { version: 1, attempts: [coachRow("x", 3, { mode: "video" })] } })));
 });
+
+test("transfer preserves historical ratings and new AI, unassessed and skipped metadata", () => {
+  const outcomes = [
+    attempt,
+    { ...attempt, questionId: "ai-question", ratings: {}, assessment: "ai", ai: { id: "ai-result", overall: 3.8 } },
+    { ...attempt, questionId: "spoken-question", ratings: {}, assessment: "unassessed", mode: "spoken" },
+    { ...attempt, questionId: "skipped-question", ratings: {}, assessment: "skipped" }
+  ];
+  const origin = memory({ [model.key]: JSON.stringify({ ...coach, attempts: outcomes }) });
+  const file = transfer.parse(JSON.stringify(transfer.snapshot(origin)));
+  const destination = memory();
+  transfer.apply(destination, transfer.plan(destination, file));
+  assert.deepEqual(model.load(destination).attempts, outcomes);
+  assert.deepEqual(transfer.plan(destination, file), []);
+});

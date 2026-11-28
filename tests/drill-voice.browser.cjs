@@ -27,7 +27,7 @@ const trackMicrophones = () => {
   };
 };
 
-async function harness(t, { theme = "light", viewport = { width: 1280, height: 900 }, init = [], env: extra = {} } = {}) {
+async function harness(t, { theme = "light", viewport = { width: 1280, height: 900 }, init = [], env: extra = {}, mock } = {}) {
   assert.ok(build, "Set DRILL_BUILD_DIR to the built Jekyll site");
   const [{ handle }, { Ledger }] = await Promise.all([
     import("../backend/drill-coach/service.mjs"), import("../backend/drill-coach/ledger.mjs")
@@ -70,7 +70,7 @@ async function harness(t, { theme = "light", viewport = { width: 1280, height: 9
       }
       const request = new Request(url, { method: original.method(), headers: { ...headers, Origin: site }, body });
       const response = await handle(request, env, ledger, {
-        now: () => (now += 2500), verify: async credential => ({ sub: "123", nonce: credential })
+        now: () => (now += 2500), ...(mock ? { mock } : {}), verify: async credential => ({ sub: "123", nonce: credential })
       });
       return route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers),
         body: (await response.text()) || undefined });
@@ -149,18 +149,18 @@ for (const [theme, viewport] of [["light", { width: 1280, height: 900 }], ["dark
     assert.ok(await byButton("Record again").isVisible());
     await shoot(page, `voice-recorder-${theme}`);
 
-    // Recording survives switching views, is excluded from storage, and marks the self-assessment as spoken.
+    // Recording survives switching views and saves as unassessed spoken practice.
     await byButton("Lessons").click();
     await byButton("Practice").click();
     await page.locator(".comm-recorder audio").waitFor();
-    for (const select of await page.locator("#comm-assessment select[name]:not([name='duration'])").all()) {
-      await select.selectOption("4");
-    }
+    assert.equal(await page.locator("#comm-self").evaluate(node => node.open), false);
     await byButton("Save and next question").click();
-    await page.getByText("Self-assessment saved.", { exact: true }).waitFor();
+    await page.getByText("Practice saved.", { exact: true }).waitFor();
     assert.equal(await page.locator(".comm-recorder audio").count(), 0, "the next question starts without a recording");
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("drill-communication-v1")));
     assert.equal(stored.attempts.at(-1).mode, "spoken");
+    assert.equal(stored.attempts.at(-1).assessment, "unassessed");
+    assert.deepEqual(stored.attempts.at(-1).ratings, {});
     assert.doesNotMatch(JSON.stringify(await page.evaluate(() => ({ ...localStorage }))), /blob:|audio\/|data:/);
     await byButton("Progress").click();
     await page.getByText("Spoken attempts", { exact: true }).waitFor();
@@ -208,7 +208,17 @@ test("unsupported browsers and blocked microphones keep written practice availab
 });
 
 test("owner transcribes, edits and evaluates a spoken answer without saving audio or text", async t => {
-  const { page, byButton, errors, uploads, db } = await harness(t);
+  const { mockOpenAI } = await import("../backend/drill-coach/evaluation.mjs");
+  let calls = 0;
+  let fail;
+  const { page, byButton, errors, uploads, db } = await harness(t, { mock: evaluation => {
+    if (++calls !== 1) return mockOpenAI(evaluation);
+    return new Promise(resolve => {
+      fail = () => resolve({ status: 200, envelope: {
+        status: "incomplete", usage: { input_tokens: 100, output_tokens: 150 }
+      } });
+    });
+  } });
   await record(page, byButton);
   await page.getByText("AI Communication Coach", { exact: true }).click();
   await page.getByText("No answer or recording leaves this site.", { exact: false }).waitFor();
@@ -232,10 +242,24 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   await transcript.fill("Private edited transcript about the IMU and the Kalman filter.");
   assert.equal(await page.locator(".comm-coach-metrics").innerText(), before, "editing never changes the original metrics");
   await byButton("Evaluate spoken answer").click();
+  await page.waitForFunction(() => {
+    const button = [...document.querySelectorAll("button")].find(node => node.textContent === "Evaluate spoken answer");
+    return button?.disabled;
+  });
+  assert.ok(await byButton("Save and next question").isDisabled());
+  while (!fail) await new Promise(resolve => setTimeout(resolve, 10));
+  fail();
+  await page.getByText("The feedback was incomplete.", { exact: false }).waitFor();
+  await byButton("Lessons").click();
+  await byButton("Practice").click();
+  await transcript.waitFor();
+  assert.equal(await transcript.inputValue(), "Private edited transcript about the IMU and the Kalman filter.");
+  assert.ok(await page.locator(".comm-recorder audio").isVisible());
+  assert.equal(uploads.length, 1);
+  await byButton("Evaluate spoken answer").click();
   await page.getByRole("heading", { name: "Mock score 3.0 out of 5" }).waitFor();
   await shoot(page, "voice-owner-spoken");
   assert.ok(await page.locator(".comm-coach-head").getByText("Spoken answer", { exact: true }).isVisible());
-  await byButton("Save scores").click();
   await page.getByText("Scores saved.", { exact: true }).waitFor();
 
   // A written evaluation of the same question compares against the spoken one.
@@ -244,8 +268,8 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   await byButton("Compare attempts").click();
   assert.ok(await page.getByText("Earlier · spoken · 3.0", { exact: true }).isVisible());
   assert.ok(await page.getByText("Revised · written · 3.0", { exact: true }).isVisible());
-  await byButton("Save scores").click();
 
+  await page.getByText("Scores saved.", { exact: true }).waitFor();
   const storage = JSON.stringify(await page.evaluate(() => ({ ...localStorage })));
   assert.doesNotMatch(storage, /Private edited transcript|mock transcript|Private written answer|blob:/);
   const coach = await page.evaluate(() => JSON.parse(localStorage.getItem("drill-ai-coach-v1")).attempts);

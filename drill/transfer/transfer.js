@@ -59,8 +59,16 @@
   function attempt(value) {
     requireValue(record(value) && identifier(value.questionId) && category(value.category) && day(value.day));
     const ratings = map(value.ratings, key => ratingNames.includes(key), score => integer(score, 1, 5));
-    requireValue(ratingNames.slice(0, 6).every(name => own(ratings, name)));
+    const assessment = value.assessment;
+    requireValue(assessment === undefined ? ratingNames.slice(0, 6).every(name => own(ratings, name)) :
+      ["ai", "unassessed", "skipped"].includes(assessment) && Object.keys(ratings).length === 0);
     const result = { questionId: value.questionId, category: value.category, day: value.day, ratings };
+    if (assessment !== undefined) result.assessment = assessment;
+    if (assessment === "ai") {
+      requireValue(record(value.ai) && identifier(value.ai.id) &&
+        Number.isFinite(value.ai.overall) && value.ai.overall >= 1 && value.ai.overall <= 5);
+      result.ai = { id: value.ai.id, overall: value.ai.overall };
+    }
     if (value.sessionId !== undefined) {
       requireValue(identifier(value.sessionId));
       result.sessionId = value.sessionId;
@@ -152,7 +160,8 @@
 
   const identifyAttempt = value => JSON.stringify([
     value.questionId, value.category, value.day, value.sessionId ?? null,
-    ratingNames.map(skill => value.ratings[skill] ?? null), ...(value.mode === "spoken" ? ["spoken"] : [])
+    ratingNames.map(skill => value.ratings[skill] ?? null), ...(value.mode === "spoken" ? ["spoken"] : []),
+    value.assessment ?? null, value.ai?.id ?? null
   ]);
   const identifySession = value => JSON.stringify([value.mode, value.day]);
 
