@@ -90,7 +90,7 @@ for (const theme of ["dark", "light"]) {
       page.on("pageerror", error => pageErrors.push(error.message));
       await page.goto(site + pagePath);
       const byButton = name => page.getByRole("button", { name, exact: true });
-      const evaluation = () => byButton("Evaluate my answer");
+      const evaluation = () => byButton("Evaluate written answer");
       const coach = () => page.getByText("AI Communication Coach", { exact: true });
       const coachPanel = page.locator("[id=comm-coach]");
       const signIn = async () => {
@@ -107,7 +107,12 @@ for (const theme of ["dark", "light"]) {
       await page.getByText("Mock mode: sample feedback for testing.", { exact: false }).waitFor();
       assert.ok(await coachPanel.locator(".comm-coach-badge").isVisible());
       await signIn();
-      const input = page.getByLabel("Written answer (optional)");
+      const input = page.getByRole("textbox", { name: "Written answer", exact: true });
+      assert.ok(await evaluation().isDisabled());
+      await input.fill("é".repeat(1201));
+      assert.ok(await evaluation().isDisabled());
+      assert.match(await page.locator("#comm-answer-count").innerText(), /2,400-byte limit/);
+      assert.equal(await byButton("Evaluate spoken answer").count(), 0);
       await input.fill("Original private answer with <markup>");
       assert.equal(calls, 0);
       await evaluation().click();
@@ -117,7 +122,7 @@ for (const theme of ["dark", "light"]) {
       await page.getByText("Improved example answer", { exact: true }).click();
       assert.ok(await page.getByText("Start with a direct definition.", { exact: false }).isVisible());
       await assertNoOperationalDetails();
-      await page.getByText("Scores saved.", { exact: true }).waitFor();
+      await page.getByText("Evaluation complete. Scores saved.", { exact: true }).waitFor();
       assert.equal(await page.locator("#comm-self").isVisible(), false);
       await byButton("Try again").click();
       await input.fill("Revised private answer with one concrete example");
@@ -131,7 +136,7 @@ for (const theme of ["dark", "light"]) {
       const snapshot = await page.evaluate(() => JSON.stringify(localStorage));
       assert.ok(snapshot.includes("drill-ai-coach-v1"));
       assert.ok(!snapshot.includes("private answer") && !snapshot.includes("Start with a direct definition"));
-      await byButton("Answer the follow-up").click();
+      await byButton("Answer the follow-up in writing").click();
       assert.equal(calls, 2);
       const followUp = page.getByLabel("How would you test whether that approach works?");
       assert.ok(await followUp.isVisible());

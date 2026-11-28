@@ -183,10 +183,17 @@
           </div>
           <button class="comm-disclosure" type="button" aria-controls="comm-hint" aria-expanded="${Boolean(draft.hint)}">Answer structure hint</button>
           <p id="comm-hint" class="comm-reveal" ${draft.hint ? "" : "hidden"}>${escape(structure)}</p>
-          <label class="comm-block">Written answer (optional)
-            <textarea name="answer" rows="4" placeholder="Answer aloud or write here.">${escape(draft.answer ?? "")}</textarea>
-          </label>
-          <div class="comm-block" id="comm-recorder"></div>
+          <fieldset class="comm-answer-modes">
+            <legend class="sr-only">Answer mode</legend>
+            <label><input type="radio" name="answerMode" value="written"${draft.answerMode === "spoken" ? "" : " checked"}>Written Answer</label>
+            <label><input type="radio" name="answerMode" value="spoken"${draft.answerMode === "spoken" ? " checked" : ""}>Spoken Answer</label>
+          </fieldset>
+          <div id="comm-written" class="comm-block">
+            <label for="comm-written-answer">Written answer</label>
+            <textarea id="comm-written-answer" name="answer" rows="4" aria-describedby="comm-answer-count">${escape(draft.answer ?? "")}</textarea>
+            <small id="comm-answer-count"></small>
+          </div>
+          <div class="comm-block" id="comm-recorder" hidden></div>
           <div class="comm-block" id="comm-coach"></div>
           <button class="comm-disclosure" type="button" aria-controls="comm-example" aria-expanded="${Boolean(draft.example)}">${draft.example ? "Hide example answer" : "Show example answer"}</button>
           <div id="comm-example" class="comm-reveal" ${draft.example ? "" : "hidden"}>
@@ -222,6 +229,29 @@
       };
     }
     const form = mount.querySelector("form");
+    const mode = () => form.elements.answerMode.value;
+    const written = form.querySelector("#comm-written");
+    const recorder = form.querySelector("#comm-recorder");
+    const count = form.querySelector("#comm-answer-count");
+    function drawAnswerMode() {
+      written.hidden = mode() !== "written";
+      recorder.hidden = mode() !== "spoken";
+    }
+    function countAnswer() {
+      const answer = form.elements.answer.value.trim();
+      const length = Array.from(answer).length;
+      const exceedsLimit = new TextEncoder().encode(answer).length > 2400;
+      count.textContent = `${length.toLocaleString()} / 2,400 characters` +
+        (exceedsLimit ? " · Shorten this answer to fit the 2,400-byte limit." : "");
+    }
+    drawAnswerMode();
+    countAnswer();
+    form.elements.answer.addEventListener("input", countAnswer);
+    for (const control of form.elements.answerMode) control.addEventListener("change", () => {
+      if (mode() === "written") window.DrillRecorder?.stop();
+      drawAnswerMode();
+      window.DrillCoach?.recordingChanged();
+    });
     // Recording is public. The coach (owner-only) can transcribe the take for this exercise.
     window.DrillRecorder?.mount(form.querySelector("#comm-recorder"), key, {
       onChange: () => window.DrillCoach?.recordingChanged()
@@ -230,10 +260,15 @@
     const coachDraft = coachDrafts.get(key) ?? {};
     coachDrafts.set(key, coachDraft);
     window.DrillCoach?.mount(form.querySelector("#comm-coach"), current, form.elements.answer, {
-      draft: coachDraft,
+      draft: coachDraft, mode,
+      selectWritten: () => {
+        form.elements.answerMode.value = "written";
+        drawAnswerMode();
+      },
       access: enabled => { self.hidden = enabled; },
       processing: busy => {
-        for (const control of form.querySelectorAll('[type="submit"], #comm-next')) control.disabled = busy;
+        recorder.inert = busy;
+        for (const control of form.querySelectorAll('[type="submit"], #comm-next, [name="answerMode"]')) control.disabled = busy;
       },
       session: session?.id, recording: () => window.DrillRecorder?.get(key) ?? null
     });
@@ -276,10 +311,11 @@
     if (deadline && model.remaining(deadline)) interval = setInterval(drawTimer, 250);
 
     function finish(skip) {
-      const evaluated = coachDraft.assessed;
-      const spoken = evaluated ? evaluated.mode === "spoken" :
-        Boolean(window.DrillRecorder?.recording() || window.DrillRecorder?.get(key));
+      const evaluated = coachDraft.results?.[mode()] ??
+        (coachDraft.assessed?.mode === mode() ? coachDraft.assessed : undefined);
+      const spoken = mode() === "spoken";
       const values = skip ? {} : fields(form);
+      if (spoken) values.answer = coachDraft.spoken?.text ?? "";
       if (self.hidden) for (const skill of Object.keys(skills)) delete values[skill];
       const attempt = model.assessment(current, values, new Date(), spoken && !skip ? "spoken" : "written", {
         optional: true, skip, ai: evaluated && { id: evaluated.id, overall: evaluated.feedback.overall }
