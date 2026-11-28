@@ -182,7 +182,7 @@ test("versioned assets initialize; every filter, practice controls and saved pro
     await page.getByText("Optional self-assessment", { exact: true }).click();
     await page.getByText("Scoring scale", { exact: true }).click();
     assert.ok(await page.getByText(/Interview-ready/).isVisible());
-    await page.getByLabel("Written answer (optional)").fill("My <answer>");
+    await page.getByRole("textbox", { name: "Written answer", exact: true }).fill("My <answer>");
     await page.getByLabel("Personal notes (optional)").fill("Practice the example");
     await rate(page, 2);
     assert.equal(await page.locator("#comm-example").isVisible(), false);
@@ -191,7 +191,7 @@ test("versioned assets initialize; every filter, practice controls and saved pro
     await view(page, "Skip to next question");
     assert.notEqual(await prompt(page), beforeSkip);
 
-    await page.getByLabel("Written answer (optional)").fill("Private unrated response");
+    await page.getByRole("textbox", { name: "Written answer", exact: true }).fill("Private unrated response");
     await view(page, "Save and next question");
     const attempts = (await saved(page)).attempts;
     assert.ok(attempts.some(row => row.assessment === "skipped"));

@@ -110,7 +110,10 @@ async function harness(t, { theme = "light", viewport = { width: 1280, height: 9
   return { page, byButton, errors, uploads, db, env };
 }
 
+const selectMode = (page, label) => page.getByRole("radio", { name: label, exact: true }).check();
+
 async function record(page, byButton, milliseconds = 1600, label = "Start recording") {
+  await selectMode(page, "Spoken Answer");
   await byButton(label).click();
   await byButton("Stop recording").waitFor();
   await page.waitForTimeout(milliseconds);
@@ -121,6 +124,10 @@ async function record(page, byButton, milliseconds = 1600, label = "Start record
 for (const [theme, viewport] of [["light", { width: 1280, height: 900 }], ["dark", { width: 390, height: 844 }]]) {
   test(`public recording works without sign-in and stays in memory (${theme})`, async t => {
     const { page, byButton, errors, uploads } = await harness(t, { theme, viewport });
+    const written = page.getByRole("textbox", { name: "Written answer", exact: true });
+    await written.fill("Public written draft");
+    await selectMode(page, "Spoken Answer");
+    assert.equal(await written.isVisible(), false);
     const recorder = page.locator(".comm-recorder");
     await recorder.getByText("Up to 5 minutes.", { exact: false }).waitFor();
     await byButton("Start recording").click();
@@ -148,6 +155,11 @@ for (const [theme, viewport] of [["light", { width: 1280, height: 900 }], ["dark
     assert.equal(playable, true);
     assert.ok(await byButton("Record again").isVisible());
     await shoot(page, `voice-recorder-${theme}`);
+    await selectMode(page, "Written Answer");
+    assert.equal(await written.inputValue(), "Public written draft");
+    assert.equal(await recorder.isVisible(), false);
+    await selectMode(page, "Spoken Answer");
+    assert.ok(await recorder.locator("audio").isVisible());
 
     // Recording survives switching views and saves as unassessed spoken practice.
     await byButton("Lessons").click();
@@ -187,6 +199,7 @@ test("recording stops automatically at the five-minute limit", async t => {
     performance.now = () => start + (real() - start) * 100;
   };
   const { page, byButton, errors } = await harness(t, { init: [fast] });
+  await selectMode(page, "Spoken Answer");
   await byButton("Start recording").click();
   await page.getByText("Recording stopped at the 5-minute limit.", { exact: true }).waitFor({ timeout: 15_000 });
   assert.equal(await page.locator(".comm-recorder-length").innerText(), "Recorded 5:00");
@@ -196,11 +209,14 @@ test("recording stops automatically at the five-minute limit", async t => {
 
 test("unsupported browsers and blocked microphones keep written practice available", async t => {
   const { page, errors } = await harness(t, { init: [() => { delete window.MediaRecorder; }] });
+  await selectMode(page, "Spoken Answer");
   await page.getByText("Recording is not available in this browser.", { exact: false }).waitFor();
-  assert.ok(await page.getByLabel("Written answer (optional)").isVisible());
+  await selectMode(page, "Written Answer");
+  assert.ok(await page.getByRole("textbox", { name: "Written answer", exact: true }).isVisible());
   const blocked = await harness(t, { init: [() => {
     navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException("denied", "NotAllowedError"));
   }] });
+  await selectMode(blocked.page, "Spoken Answer");
   await blocked.byButton("Start recording").click();
   await blocked.page.getByText("Microphone access was blocked.", { exact: false }).waitFor();
   assert.ok(await blocked.byButton("Start recording").isVisible());
@@ -224,7 +240,8 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   await page.getByText("No answer or recording leaves this site.", { exact: false }).waitFor();
   await byButton("Sign in to use AI feedback").click();
   await byButton("Mock Google Sign-In").click();
-  await byButton("Transcribe recording").click();
+  assert.equal(await byButton("Evaluate written answer").count(), 0);
+  await byButton("Evaluate spoken answer").click();
   const transcript = page.getByLabel("Transcript of your spoken answer");
   await transcript.waitFor();
   assert.equal(uploads.length, 1);
@@ -238,18 +255,21 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   assert.ok(await page.getByText("Pronunciation, accent, confidence and intonation are not assessed.", { exact: false }).isVisible());
   // The transcript is already shown, so the same take cannot be sent again.
   assert.equal(await byButton("Transcribe recording").count(), 0);
-  const before = await page.locator(".comm-coach-metrics").innerText();
-  await transcript.fill("Private edited transcript about the IMU and the Kalman filter.");
-  assert.equal(await page.locator(".comm-coach-metrics").innerText(), before, "editing never changes the original metrics");
-  await byButton("Evaluate spoken answer").click();
-  await page.waitForFunction(() => {
-    const button = [...document.querySelectorAll("button")].find(node => node.textContent === "Evaluate spoken answer");
-    return button?.disabled;
-  });
+  assert.ok(await byButton("Evaluate spoken answer").isDisabled());
   assert.ok(await byButton("Save and next question").isDisabled());
   while (!fail) await new Promise(resolve => setTimeout(resolve, 10));
   fail();
-  await page.getByText("The feedback was incomplete.", { exact: false }).waitFor();
+  await page.getByText("Evaluation failed. The feedback was incomplete.", { exact: false }).waitFor();
+  assert.match(await page.locator(".comm-coach-status").innerText(), /Reference:/);
+  const before = await page.locator(".comm-coach-metrics").innerText();
+  await transcript.fill("");
+  assert.ok(await byButton("Evaluate spoken answer").isDisabled());
+  await transcript.fill("Private edited transcript about the IMU and the Kalman filter.");
+  assert.equal(await page.locator(".comm-coach-metrics").innerText(), before);
+  await selectMode(page, "Written Answer");
+  assert.equal(await transcript.isVisible(), false);
+  assert.equal(await byButton("Evaluate spoken answer").count(), 0);
+  await selectMode(page, "Spoken Answer");
   await byButton("Lessons").click();
   await byButton("Practice").click();
   await transcript.waitFor();
@@ -260,16 +280,19 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   await page.getByRole("heading", { name: "Mock score 3.0 out of 5" }).waitFor();
   await shoot(page, "voice-owner-spoken");
   assert.ok(await page.locator(".comm-coach-head").getByText("Spoken answer", { exact: true }).isVisible());
-  await page.getByText("Scores saved.", { exact: true }).waitFor();
+  await page.getByText("Evaluation complete. Scores saved.", { exact: true }).waitFor();
 
   // A written evaluation of the same question compares against the spoken one.
-  await page.getByLabel("Written answer (optional)").fill("Private written answer");
-  await byButton("Evaluate my answer").click();
+  await selectMode(page, "Written Answer");
+  assert.ok(await byButton("Evaluate written answer").isDisabled());
+  await page.getByRole("textbox", { name: "Written answer", exact: true }).fill("Private written answer");
+  assert.match(await page.locator("#comm-answer-count").innerText(), /^22 /);
+  await byButton("Evaluate written answer").click();
   await byButton("Compare attempts").click();
   assert.ok(await page.getByText("Earlier · spoken · 3.0", { exact: true }).isVisible());
   assert.ok(await page.getByText("Revised · written · 3.0", { exact: true }).isVisible());
 
-  await page.getByText("Scores saved.", { exact: true }).waitFor();
+  await page.getByText("Evaluation complete. Scores saved.", { exact: true }).waitFor();
   const storage = JSON.stringify(await page.evaluate(() => ({ ...localStorage })));
   assert.doesNotMatch(storage, /Private edited transcript|mock transcript|Private written answer|blob:/);
   const coach = await page.evaluate(() => JSON.parse(localStorage.getItem("drill-ai-coach-v1")).attempts);
@@ -277,17 +300,30 @@ test("owner transcribes, edits and evaluates a spoken answer without saving audi
   const ledger = JSON.stringify(db.prepare("SELECT * FROM transcriptions").all());
   assert.doesNotMatch(ledger, /transcript|IMU/i);
 
-  // A new take discards the old transcript.
+  assert.equal(uploads.length, 1);
+  const costs = db.prepare("SELECT COUNT(*) AS calls, SUM(cost) AS micros FROM evaluations").get();
+  assert.equal(costs.calls, 3);
+  assert.equal(costs.micros, 7950);
+  await selectMode(page, "Spoken Answer");
+  assert.ok(await page.locator(".comm-coach-head").getByText("Spoken answer", { exact: true }).isVisible());
+  assert.equal(await transcript.inputValue(), "Private edited transcript about the IMU and the Kalman filter.");
+
+  // A new take discards the old transcript. Manual transcription leaves evaluation optional.
   await record(page, byButton, 1600, "Record again");
   assert.equal(await page.locator(".comm-coach-spoken").count(), 0);
-  assert.ok(await byButton("Transcribe recording").isVisible());
+  await byButton("Transcribe recording").click();
+  await transcript.waitFor();
+  assert.equal(uploads.length, 2);
+  assert.equal(calls, 3);
+  await byButton("Save and next question").click();
+  assert.match(await page.locator("#communication-status").innerText(), /Practice saved/);
 
   await byButton("Progress").click();
   await page.getByText("AI assessment history", { exact: true }).click();
   assert.match(await page.locator(".comm-coach-history").innerText(), /Mock · Spoken · /);
   await page.getByText("AI Coach settings", { exact: true }).click();
   await page.getByText("Transcriptions today", { exact: true }).waitFor();
-  assert.ok(await page.getByText("1 of 20", { exact: true }).isVisible());
+  assert.ok(await page.getByText("2 of 20", { exact: true }).isVisible());
 
   // Live scores (mock rows never count toward progress) are summarized separately by mode.
   await page.evaluate(() => {
@@ -314,8 +350,13 @@ test("transcription can be switched off while recording and written evaluation s
   await page.getByText("AI Communication Coach", { exact: true }).click();
   await byButton("Sign in to use AI feedback").click();
   await byButton("Mock Google Sign-In").click();
-  await byButton("Evaluate my answer").waitFor();
+  await byButton("Evaluate spoken answer").waitFor();
+  assert.ok(await byButton("Evaluate spoken answer").isDisabled());
   assert.equal(await byButton("Transcribe recording").count(), 0);
+  await selectMode(page, "Written Answer");
+  await byButton("Evaluate written answer").waitFor();
+  assert.equal(await page.locator(".comm-recorder audio").isVisible(), false);
+  await selectMode(page, "Spoken Answer");
   assert.ok(await page.locator(".comm-recorder audio").isVisible());
   assert.equal(uploads.length, 0);
   assert.deepEqual(errors, []);

@@ -129,7 +129,7 @@
           : "No microphone could be used. Check that one is connected.");
         return;
       }
-      if (!current() || active) {
+      if (!current() || container.hidden || container.inert || active) {
         stream.getTracks().forEach(track => track.stop());
         return;
       }

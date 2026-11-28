@@ -233,3 +233,24 @@
   .communication .comm-coach-columns { grid-template-columns: 1fr; }
   .communication .comm-coach-skill { grid-template-columns: minmax(0, 9rem) 1fr 1.25rem; gap: .5rem; font-size: .88rem; }
 }
+
+.communication .comm-answer-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  border: 0;
+  padding: 0;
+}
+.communication .comm-answer-modes label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 44px;
+  margin: 0;
+}
+.communication #comm-answer-count {
+  display: block;
+  margin-top: .35rem;
+  color: var(--muted);
+}
+.communication .comm-coach-controls > .comm-coach-note { flex-basis: 100%; }
